@@ -1,0 +1,12 @@
+[install]
+# Use npm registry (default)
+registry = "https://registry.npmjs.org"
+
+[install.scopes]
+# For private packages if needed
+
+[test]
+# Test configuration
+
+[build]
+# Build defaults
