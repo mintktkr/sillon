@@ -4,7 +4,7 @@
  * and error handling without network I/O.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { CouchClient } from "../src/lib/couch-client";
 
 // ── Fetch mock infrastructure ────────────────────────────────────────────────
@@ -44,7 +44,10 @@ function clearCaptures() {
   capturedRequests.length = 0;
 }
 
-const mockFetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+const mockFetch = async (
+  input: string | URL | Request,
+  init?: RequestInit,
+): Promise<Response> => {
   const url =
     input instanceof Request
       ? input.url
@@ -172,7 +175,10 @@ describe("CouchClient (unit)", () => {
     const req = lastReq();
     expect(req.url).toBe(`${BASE}/mydb/doc1`);
     expect(req.options.method).toBe("PUT");
-    expect(JSON.parse(req.options.body as string)).toMatchObject({ _id: "doc1", name: "test" });
+    expect(JSON.parse(req.options.body as string)).toMatchObject({
+      _id: "doc1",
+      name: "test",
+    });
   });
 
   // ── createDocument ────────────────────────────────────────────────────────
@@ -260,7 +266,9 @@ describe("CouchClient (unit)", () => {
     clearCaptures();
     enqueueMock({ ok: true, body: [] });
     await client.bulkDocs("mydb", [], { new_edits: false });
-    const body = JSON.parse(lastReq().options.body as string) as { new_edits: boolean };
+    const body = JSON.parse(lastReq().options.body as string) as {
+      new_edits: boolean;
+    };
     expect(body.new_edits).toBe(false);
   });
 
@@ -306,7 +314,9 @@ describe("CouchClient (unit)", () => {
     const req = lastReq();
     expect(req.url).toBe(`${BASE}/mydb/_find`);
     expect(req.options.method).toBe("POST");
-    const body = JSON.parse(req.options.body as string) as { selector: unknown };
+    const body = JSON.parse(req.options.body as string) as {
+      selector: unknown;
+    };
     expect(body.selector).toEqual({ type: "user" });
   });
 
@@ -344,7 +354,10 @@ describe("CouchClient (unit)", () => {
     const req = lastReq();
     expect(req.url).toBe(`${BASE}/_replicate`);
     expect(req.options.method).toBe("POST");
-    const body = JSON.parse(req.options.body as string) as { source: string; target: string };
+    const body = JSON.parse(req.options.body as string) as {
+      source: string;
+      target: string;
+    };
     expect(body.source).toBe("http://source:5984/db");
     expect(body.target).toBe("http://target:5984/db");
   });
@@ -358,7 +371,10 @@ describe("CouchClient (unit)", () => {
     const req = lastReq();
     expect(req.url).toBe(`${BASE}/mydb/_purge`);
     expect(req.options.method).toBe("POST");
-    const body = JSON.parse(req.options.body as string) as Record<string, string[]>;
+    const body = JSON.parse(req.options.body as string) as Record<
+      string,
+      string[]
+    >;
     expect(body["doc1"]).toEqual(["1-abc"]);
   });
 
@@ -368,7 +384,12 @@ describe("CouchClient (unit)", () => {
     clearCaptures();
     enqueueMock({
       ok: true,
-      body: { db_name: "mydb", partition: "US", doc_count: 10, doc_del_count: 0 },
+      body: {
+        db_name: "mydb",
+        partition: "US",
+        doc_count: 10,
+        doc_del_count: 0,
+      },
     });
     await client.getPartitionInfo("mydb", "US");
     expect(lastReq().url).toBe(`${BASE}/mydb/_partition/US`);
@@ -378,7 +399,12 @@ describe("CouchClient (unit)", () => {
     clearCaptures();
     enqueueMock({
       ok: true,
-      body: { db_name: "mydb", partition: "north/west", doc_count: 0, doc_del_count: 0 },
+      body: {
+        db_name: "mydb",
+        partition: "north/west",
+        doc_count: 0,
+        doc_del_count: 0,
+      },
     });
     await client.getPartitionInfo("mydb", "north/west");
     expect(lastReq().url).toBe(`${BASE}/mydb/_partition/north%2Fwest`);
@@ -419,7 +445,10 @@ describe("CouchClient (unit)", () => {
     clearCaptures();
     enqueueMock({
       ok: true,
-      body: { all_nodes: ["node1@127.0.0.1"], cluster_nodes: ["node1@127.0.0.1"] },
+      body: {
+        all_nodes: ["node1@127.0.0.1"],
+        cluster_nodes: ["node1@127.0.0.1"],
+      },
     });
     await client.getMembership();
     expect(lastReq().url).toBe(`${BASE}/_membership`);
@@ -482,7 +511,7 @@ describe("CouchClient (unit)", () => {
       body: { error: "conflict", reason: "Document update conflict." },
     });
     await expect(client.putDocument("mydb", { _id: "x" })).rejects.toThrow(
-      "Document update conflict."
+      "Document update conflict.",
     );
   });
 
@@ -506,6 +535,8 @@ describe("CouchClient (unit)", () => {
       status: 404,
       body: { error: "not_found" },
     });
-    await expect(client.getDocument("mydb", "missing")).rejects.toThrow("not_found");
+    await expect(client.getDocument("mydb", "missing")).rejects.toThrow(
+      "not_found",
+    );
   });
 });

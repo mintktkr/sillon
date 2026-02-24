@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import pc from "picocolors";
-import { LocalRuntime } from "../lib/local-runtime.js";
 import { ConfigManager } from "../lib/config.js";
+import { LocalRuntime } from "../lib/local-runtime.js";
 
 export const LocalCommand = new Command("local")
   .description("Manage local CouchDB instance")
@@ -10,15 +10,14 @@ export const LocalCommand = new Command("local")
   .option("--admin <user>", "Admin username", "admin")
   .option("--password <pass>", "Admin password", "password");
 
-LocalCommand
-  .command("up")
+LocalCommand.command("up")
   .description("Start local CouchDB")
   .option("--no-connect", "Skip saving as default connection")
   .action(async (options, cmd) => {
     const parentOpts = cmd.parent?.opts() ?? {};
     const runtime = new LocalRuntime({
       version: parentOpts.version,
-      port: parseInt(parentOpts.port),
+      port: Number.parseInt(parentOpts.port),
       adminUser: parentOpts.admin,
       adminPass: parentOpts.password,
     });
@@ -29,7 +28,9 @@ LocalCommand
       const url = await runtime.start();
       console.log(pc.green(`✓ CouchDB ${parentOpts.version} running`));
       console.log(pc.dim(`  URL:   ${url}`));
-      console.log(pc.dim(`  Admin: ${parentOpts.admin} / ${parentOpts.password}`));
+      console.log(
+        pc.dim(`  Admin: ${parentOpts.admin} / ${parentOpts.password}`),
+      );
 
       // Automatically save as default connection so db/doc commands work immediately
       if (options.connect !== false) {
@@ -38,13 +39,16 @@ LocalCommand
         console.log(pc.dim("  Saved as default connection"));
       }
     } catch (error) {
-      console.error(pc.red(`Failed to start: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Failed to start: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
-LocalCommand
-  .command("down")
+LocalCommand.command("down")
   .description("Stop local CouchDB")
   .action(async () => {
     const runtime = new LocalRuntime();
@@ -54,13 +58,16 @@ LocalCommand
       await runtime.stop();
       console.log(pc.green("✓ CouchDB stopped"));
     } catch (error) {
-      console.error(pc.red(`Failed to stop: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Failed to stop: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
-LocalCommand
-  .command("status")
+LocalCommand.command("status")
   .description("Check local CouchDB status")
   .option("--json", "Output as JSON")
   .action(async (options) => {

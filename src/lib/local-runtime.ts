@@ -1,8 +1,8 @@
-import { spawn, $ } from "bun";
 import { existsSync } from "fs";
-import { mkdir } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
+import { $, spawn } from "bun";
+import { mkdir } from "fs/promises";
 
 export interface LocalRuntimeOptions {
   version?: string;
@@ -42,8 +42,21 @@ export class LocalRuntime {
     this.port = options.port ?? 5984;
     this.adminUser = options.adminUser ?? "admin";
     this.adminPass = options.adminPass ?? "password";
-    this.dataDir = join(homedir(), ".local", "share", "sillon", "couchdb", this.version);
-    this.stateFile = join(homedir(), ".local", "share", "sillon", "couchdb.state.json");
+    this.dataDir = join(
+      homedir(),
+      ".local",
+      "share",
+      "sillon",
+      "couchdb",
+      this.version,
+    );
+    this.stateFile = join(
+      homedir(),
+      ".local",
+      "share",
+      "sillon",
+      "couchdb.state.json",
+    );
   }
 
   async start(): Promise<string> {
@@ -61,8 +74,8 @@ export class LocalRuntime {
 
     throw new Error(
       "No supported runtime found. Please install Podman or Mise:\n" +
-      "  Podman: https://podman.io/getting-started/installation\n" +
-      "  Mise:   https://mise.jdx.dev/getting-started.html"
+        "  Podman: https://podman.io/getting-started/installation\n" +
+        "  Mise:   https://mise.jdx.dev/getting-started.html",
     );
   }
 
@@ -86,9 +99,10 @@ export class LocalRuntime {
     if (!state) return { running: false };
 
     // Verify the process/container is still alive
-    const alive = state.runtime === "podman" && state.containerName
-      ? await this.isPodmanRunning(state.containerName)
-      : this.isProcessAlive(state.pid);
+    const alive =
+      state.runtime === "podman" && state.containerName
+        ? await this.isPodmanRunning(state.containerName)
+        : this.isProcessAlive(state.pid);
 
     if (!alive) {
       await this.clearState();
@@ -107,17 +121,27 @@ export class LocalRuntime {
   private async detectRuntime(): Promise<"podman" | "mise" | "binary"> {
     // Prefer podman — no extra toolchain needed
     try {
-      const proc = Bun.spawn(["which", "podman"], { stdout: "pipe", stderr: "pipe" });
+      const proc = Bun.spawn(["which", "podman"], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
       await proc.exited;
       if (proc.exitCode === 0) return "podman";
-    } catch { /* not available */ }
+    } catch {
+      /* not available */
+    }
 
     // Fall back to mise
     try {
-      const proc = Bun.spawn(["which", "mise"], { stdout: "pipe", stderr: "pipe" });
+      const proc = Bun.spawn(["which", "mise"], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
       await proc.exited;
       if (proc.exitCode === 0) return "mise";
-    } catch { /* not available */ }
+    } catch {
+      /* not available */
+    }
 
     return "binary";
   }
@@ -126,17 +150,31 @@ export class LocalRuntime {
     const containerName = "sillon-couchdb";
 
     // Remove any existing container with the same name
-    try { await $`podman rm -f ${containerName}`.quiet(); } catch { /* ignore */ }
+    try {
+      await $`podman rm -f ${containerName}`.quiet();
+    } catch {
+      /* ignore */
+    }
 
-    const proc = spawn([
-      "podman", "run", "-d",
-      "--name", containerName,
-      "-p", `${this.port}:5984`,
-      "-e", `COUCHDB_USER=${this.adminUser}`,
-      "-e", `COUCHDB_PASSWORD=${this.adminPass}`,
-      "-v", `${this.dataDir}:/opt/couchdb/data`,
-      `docker.io/apache/couchdb:${this.version}`,
-    ], { stdout: "pipe", stderr: "pipe" });
+    const proc = spawn(
+      [
+        "podman",
+        "run",
+        "-d",
+        "--name",
+        containerName,
+        "-p",
+        `${this.port}:5984`,
+        "-e",
+        `COUCHDB_USER=${this.adminUser}`,
+        "-e",
+        `COUCHDB_PASSWORD=${this.adminPass}`,
+        "-v",
+        `${this.dataDir}:/opt/couchdb/data`,
+        `docker.io/apache/couchdb:${this.version}`,
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
 
     const exitCode = await proc.exited;
     if (exitCode !== 0) {
@@ -145,8 +183,9 @@ export class LocalRuntime {
     }
 
     // Record the container's host PID for status tracking (informational only)
-    const pidText = await $`podman inspect -f '{{.State.Pid}}' ${containerName}`.text();
-    const pid = parseInt(pidText.trim());
+    const pidText =
+      await $`podman inspect -f '{{.State.Pid}}' ${containerName}`.text();
+    const pid = Number.parseInt(pidText.trim());
 
     await this.writeState({
       runtime: "podman",
@@ -167,17 +206,22 @@ export class LocalRuntime {
     await $`mise install couchdb@${this.version}`.quiet();
 
     // Resolve the binary path for this exact version
-    const binPath = (await $`mise which --version ${this.version} couchdb`.text()).trim();
+    const binPath = (
+      await $`mise which --version ${this.version} couchdb`.text()
+    ).trim();
 
     // Build a minimal ini config so couchdb uses our port and admin
     const localIni = join(this.dataDir, "local.ini");
-    await Bun.write(localIni, `[httpd]
+    await Bun.write(
+      localIni,
+      `[httpd]
 port = ${this.port}
 bind_address = 127.0.0.1
 
 [admins]
 ${this.adminUser} = ${this.adminPass}
-`);
+`,
+    );
 
     const proc = spawn([binPath, "-a", localIni], {
       cwd: this.dataDir,
@@ -242,7 +286,7 @@ ${this.adminUser} = ${this.adminPass}
     try {
       const proc = Bun.spawn(
         ["podman", "inspect", "-f", "{{.State.Running}}", containerName],
-        { stdout: "pipe", stderr: "pipe" }
+        { stdout: "pipe", stderr: "pipe" },
       );
       await proc.exited;
       if (proc.exitCode !== 0) return false;
@@ -257,21 +301,25 @@ ${this.adminUser} = ${this.adminPass}
     try {
       const file = Bun.file(this.stateFile);
       if (!(await file.exists())) return null;
-      return await file.json() as RuntimeState;
+      return (await file.json()) as RuntimeState;
     } catch {
       return null;
     }
   }
 
   private async writeState(state: RuntimeState): Promise<void> {
-    await mkdir(join(homedir(), ".local", "share", "sillon"), { recursive: true });
+    await mkdir(join(homedir(), ".local", "share", "sillon"), {
+      recursive: true,
+    });
     await Bun.write(this.stateFile, JSON.stringify(state, null, 2));
   }
 
   private async clearState(): Promise<void> {
     try {
       await Bun.file(this.stateFile).delete();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   private async waitForReady(): Promise<void> {
@@ -282,10 +330,14 @@ ${this.adminUser} = ${this.adminPass}
       try {
         const resp = await fetch(url);
         if (resp.status === 200) return;
-      } catch { /* not ready yet */ }
+      } catch {
+        /* not ready yet */
+      }
       await new Promise((r) => setTimeout(r, 1000));
     }
 
-    throw new Error(`Timeout: CouchDB did not become ready after ${maxAttempts}s`);
+    throw new Error(
+      `Timeout: CouchDB did not become ready after ${maxAttempts}s`,
+    );
   }
 }

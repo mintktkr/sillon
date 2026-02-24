@@ -1,11 +1,10 @@
 import { Command } from "commander";
 import { unlink } from "fs/promises";
 import pc from "picocolors";
-import { CouchClient, type Document } from "../lib/couch-client.js";
 import { ConfigManager } from "../lib/config.js";
+import { CouchClient, type Document } from "../lib/couch-client.js";
 
-export const DocCommand = new Command("doc")
-  .description("Document operations");
+export const DocCommand = new Command("doc").description("Document operations");
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -16,7 +15,7 @@ async function resolveDb(arg?: string): Promise<string> {
   const current = await config.getCurrentDb();
   if (current) return current;
   throw new Error(
-    "No database specified.\n  Pass a database name or run: sillon db use <name>"
+    "No database specified.\n  Pass a database name or run: sillon db use <name>",
   );
 }
 
@@ -29,7 +28,9 @@ async function getClient(): Promise<CouchClient> {
 /** Read all stdin as a string. Errors if stdin is a TTY (nothing piped). */
 async function readStdin(): Promise<string> {
   if (process.stdin.isTTY) {
-    throw new Error("No JSON provided — pipe JSON to stdin:\n  echo '{...}' | sillon doc put");
+    throw new Error(
+      "No JSON provided — pipe JSON to stdin:\n  echo '{...}' | sillon doc put",
+    );
   }
   const chunks: Buffer[] = [];
   for await (const chunk of process.stdin) {
@@ -68,7 +69,11 @@ async function editInEditor(content: string): Promise<string> {
   const edited = await Bun.file(tmpPath).text();
 
   // Best-effort cleanup
-  try { await unlink(tmpPath); } catch { /* ignore */ }
+  try {
+    await unlink(tmpPath);
+  } catch {
+    /* ignore */
+  }
 
   if (proc.exitCode !== 0) {
     throw new Error(`Editor exited with code ${proc.exitCode}`);
@@ -79,8 +84,7 @@ async function editInEditor(content: string): Promise<string> {
 
 // ── list ──────────────────────────────────────────────────────────────────────
 
-DocCommand
-  .command("list [db]")
+DocCommand.command("list [db]")
   .description("List documents in a database")
   .option("--limit <n>", "Max number of results")
   .option("--skip <n>", "Documents to skip")
@@ -93,8 +97,8 @@ DocCommand
       const client = await getClient();
 
       const result = await client.getAllDocs(name, {
-        limit: options.limit ? parseInt(options.limit, 10) : undefined,
-        skip: options.skip ? parseInt(options.skip, 10) : undefined,
+        limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
+        skip: options.skip ? Number.parseInt(options.skip, 10) : undefined,
         descending: !!options.descending,
         include_docs: !!options.includeDocs,
       });
@@ -106,7 +110,7 @@ DocCommand
 
       const rows = result.rows.filter((r) => !r.value.deleted);
       console.log(
-        pc.cyan(`📄 "${name}"`) + pc.dim(` — ${result.total_rows} total`)
+        pc.cyan(`📄 "${name}"`) + pc.dim(` — ${result.total_rows} total`),
       );
 
       if (rows.length === 0) {
@@ -122,27 +126,39 @@ DocCommand
           if (keys.length > 0) {
             const preview = keys
               .slice(0, 4)
-              .map((k) => `${k}: ${JSON.stringify(row.doc![k as keyof typeof row.doc]).slice(0, 20)}`)
+              .map(
+                (k) =>
+                  `${k}: ${JSON.stringify(row.doc![k as keyof typeof row.doc]).slice(0, 20)}`,
+              )
               .join(", ");
-            console.log(`    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`);
+            console.log(
+              `    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`,
+            );
           }
         }
       }
 
       if (result.rows.length < result.total_rows) {
         const shown = result.rows.length;
-        console.log(pc.dim(`\n  Showing ${shown} of ${result.total_rows}. Use --limit / --skip to paginate.`));
+        console.log(
+          pc.dim(
+            `\n  Showing ${shown} of ${result.total_rows}. Use --limit / --skip to paginate.`,
+          ),
+        );
       }
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── get ───────────────────────────────────────────────────────────────────────
 
-DocCommand
-  .command("get <id> [db]")
+DocCommand.command("get <id> [db]")
   .description("Get a document by ID")
   .option("--json", "Output as JSON (default)")
   .action(async (id: string, db?: string, _options?) => {
@@ -153,15 +169,18 @@ DocCommand
       // Always pretty-print JSON — it's the canonical format for a doc
       console.log(JSON.stringify(doc, null, 2));
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── put ───────────────────────────────────────────────────────────────────────
 
-DocCommand
-  .command("put [db]")
+DocCommand.command("put [db]")
   .description("Insert or update a document (reads JSON from stdin)")
   .option("--id <id>", "Override or set document _id")
   .option("--json", "Output response as JSON")
@@ -179,7 +198,9 @@ DocCommand
       }
 
       if (typeof doc !== "object" || Array.isArray(doc) || doc === null) {
-        throw new Error("JSON must be an object ({}), not an array or primitive");
+        throw new Error(
+          "JSON must be an object ({}), not an array or primitive",
+        );
       }
 
       // --id flag overrides _id in the JSON
@@ -204,15 +225,18 @@ DocCommand
       console.log(`  ${pc.dim("id:")}  ${result.id}`);
       console.log(`  ${pc.dim("rev:")} ${result.rev}`);
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── edit ──────────────────────────────────────────────────────────────────────
 
-DocCommand
-  .command("edit <id> [db]")
+DocCommand.command("edit <id> [db]")
   .description("Edit a document in $EDITOR")
   .action(async (id: string, db?: string) => {
     try {
@@ -247,15 +271,18 @@ DocCommand
       console.log(`  ${pc.dim("id:")}  ${result.id}`);
       console.log(`  ${pc.dim("rev:")} ${result.rev}`);
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── delete ────────────────────────────────────────────────────────────────────
 
-DocCommand
-  .command("delete <id> [db]")
+DocCommand.command("delete <id> [db]")
   .alias("rm")
   .description("Delete a document")
   .option("-f, --force", "Skip confirmation")
@@ -269,7 +296,7 @@ DocCommand
 
       if (!options.force) {
         const ok = await confirm(
-          pc.yellow(`Delete "${id}" from "${name}"? [y/N] `)
+          pc.yellow(`Delete "${id}" from "${name}"? [y/N] `),
         );
         if (!ok) {
           console.log(pc.dim("Aborted."));
@@ -280,17 +307,25 @@ DocCommand
       await client.deleteDocument(name, id, doc._rev!);
       console.log(pc.green(`✓ Deleted "${id}"`));
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── purge ─────────────────────────────────────────────────────────────────────
 
-DocCommand
-  .command("purge <id> [db]")
-  .description("Permanently purge specific revisions of a document (CouchDB 3.x)")
-  .option("--rev <revs>", "Comma-separated revision(s) to purge. Defaults to current _rev.")
+DocCommand.command("purge <id> [db]")
+  .description(
+    "Permanently purge specific revisions of a document (CouchDB 3.x)",
+  )
+  .option(
+    "--rev <revs>",
+    "Comma-separated revision(s) to purge. Defaults to current _rev.",
+  )
   .option("--json", "Output response as JSON")
   .action(async (id: string, db?: string, options?) => {
     try {
@@ -318,7 +353,9 @@ DocCommand
 
       const purgedRevs = result.purged?.[id] ?? [];
       if (purgedRevs.length > 0) {
-        console.log(pc.green(`✓ Purged "${id}" (${purgedRevs.length} revision(s))`));
+        console.log(
+          pc.green(`✓ Purged "${id}" (${purgedRevs.length} revision(s))`),
+        );
         for (const rev of purgedRevs) {
           console.log(`  ${pc.dim("–")} ${rev}`);
         }
@@ -326,16 +363,21 @@ DocCommand
         console.log(pc.dim(`No revisions purged for "${id}"`));
       }
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── bulk-get ──────────────────────────────────────────────────────────────────
 
-DocCommand
-  .command("bulk-get [db]")
-  .description("Fetch multiple documents by ID (reads JSON array of IDs from stdin)")
+DocCommand.command("bulk-get [db]")
+  .description(
+    "Fetch multiple documents by ID (reads JSON array of IDs from stdin)",
+  )
   .option("--include-docs", "Include full document bodies in response")
   .option("--json", "Output as JSON")
   .action(async (db?: string, options?) => {
@@ -348,7 +390,9 @@ DocCommand
       try {
         ids = JSON.parse(raw);
       } catch {
-        throw new Error("Invalid JSON on stdin — expected an array of document IDs");
+        throw new Error(
+          "Invalid JSON on stdin — expected an array of document IDs",
+        );
       }
 
       if (!Array.isArray(ids) || !ids.every((id) => typeof id === "string")) {
@@ -366,7 +410,8 @@ DocCommand
       }
 
       console.log(
-        pc.cyan(`📦 Bulk fetch "${name}"`) + pc.dim(` — ${result.rows.length} row(s)`)
+        pc.cyan(`📦 Bulk fetch "${name}"`) +
+          pc.dim(` — ${result.rows.length} row(s)`),
       );
 
       for (const row of result.rows) {
@@ -380,15 +425,24 @@ DocCommand
             if (keys.length > 0) {
               const preview = keys
                 .slice(0, 4)
-                .map((k) => `${k}: ${JSON.stringify((row.doc as Record<string, unknown>)[k]).slice(0, 20)}`)
+                .map(
+                  (k) =>
+                    `${k}: ${JSON.stringify((row.doc as Record<string, unknown>)[k]).slice(0, 20)}`,
+                )
                 .join(", ");
-              console.log(`    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`);
+              console.log(
+                `    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`,
+              );
             }
           }
         }
       }
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });

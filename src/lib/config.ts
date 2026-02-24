@@ -9,9 +9,9 @@ export interface ConnectionConfig {
 }
 
 export interface SillonConfig {
-  defaultConnection?: string;      // raw URL default
-  defaultConnectionName?: string;  // named connection default (takes precedence)
-  currentDb?: string;              // last-used database (sillon db use <name>)
+  defaultConnection?: string; // raw URL default
+  defaultConnectionName?: string; // named connection default (takes precedence)
+  currentDb?: string; // last-used database (sillon db use <name>)
   connections: Record<string, string>;
   editor?: string;
   output?: "auto" | "json" | "table";
@@ -139,7 +139,7 @@ export class ConfigManager {
 
     throw new Error(
       "No CouchDB connection configured.\n" +
-        "Run: sillon connect <url>  or set COUCHDB_URL env var"
+        "Run: sillon connect <url>  or set COUCHDB_URL env var",
     );
   }
 

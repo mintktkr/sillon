@@ -1,10 +1,9 @@
 import { Command } from "commander";
 import pc from "picocolors";
-import { CouchClient } from "../lib/couch-client.js";
 import { ConfigManager } from "../lib/config.js";
+import { CouchClient } from "../lib/couch-client.js";
 
-export const DbCommand = new Command("db")
-  .description("Database operations");
+export const DbCommand = new Command("db").description("Database operations");
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -13,7 +12,7 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
 /** Read a single line from stdin. Returns trimmed string. */
@@ -31,7 +30,10 @@ async function prompt(question: string): Promise<string> {
   });
 }
 
-async function getClient(): Promise<{ client: CouchClient; config: ConfigManager }> {
+async function getClient(): Promise<{
+  client: CouchClient;
+  config: ConfigManager;
+}> {
   const config = new ConfigManager();
   const conn = await config.getActiveConnection();
   return { client: new CouchClient(conn.url), config };
@@ -39,8 +41,7 @@ async function getClient(): Promise<{ client: CouchClient; config: ConfigManager
 
 // ── list ──────────────────────────────────────────────────────────────────────
 
-DbCommand
-  .command("list")
+DbCommand.command("list")
   .description("List all databases")
   .option("--json", "Output as JSON")
   .action(async (options) => {
@@ -59,15 +60,18 @@ DbCommand
       }
       console.log(pc.dim(`\nTotal: ${dbs.length} databases`));
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── create ────────────────────────────────────────────────────────────────────
 
-DbCommand
-  .command("create <name>")
+DbCommand.command("create <name>")
   .description("Create a new database")
   .option("--partitioned", "Create as partitioned database")
   .action(async (name: string, options) => {
@@ -79,21 +83,28 @@ DbCommand
         console.log(pc.dim("  (partitioned)"));
       }
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── delete ────────────────────────────────────────────────────────────────────
 
-DbCommand
-  .command("delete <name>")
+DbCommand.command("delete <name>")
   .alias("rm")
   .description("Delete a database")
   .option("-f, --force", "Skip confirmation prompt")
   .action(async (name: string, options) => {
     if (!options.force) {
-      console.log(pc.yellow(`⚠️  This will permanently delete "${name}" and all its documents.`));
+      console.log(
+        pc.yellow(
+          `⚠️  This will permanently delete "${name}" and all its documents.`,
+        ),
+      );
       const answer = await prompt(`Type the database name to confirm: `);
       if (answer !== name) {
         console.log(pc.dim("Aborted."));
@@ -106,15 +117,18 @@ DbCommand
       await client.deleteDatabase(name);
       console.log(pc.green(`✓ Deleted database "${name}"`));
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── info ──────────────────────────────────────────────────────────────────────
 
-DbCommand
-  .command("info [name]")
+DbCommand.command("info [name]")
   .description("Show database information")
   .option("--json", "Output as JSON")
   .action(async (name?: string, options?) => {
@@ -142,23 +156,30 @@ DbCommand
       console.log(pc.cyan(`📊 Database: ${pc.bold(name)}`));
       console.log(`  ${pc.dim("Documents:")}       ${info.doc_count}`);
       console.log(`  ${pc.dim("Deleted:")}         ${info.doc_del_count}`);
-      console.log(`  ${pc.dim("Size (active):")}   ${formatBytes(info.sizes?.active ?? 0)}`);
-      console.log(`  ${pc.dim("Size (external):")} ${formatBytes(info.sizes?.external ?? 0)}`);
+      console.log(
+        `  ${pc.dim("Size (active):")}   ${formatBytes(info.sizes?.active ?? 0)}`,
+      );
+      console.log(
+        `  ${pc.dim("Size (external):")} ${formatBytes(info.sizes?.external ?? 0)}`,
+      );
       console.log(`  ${pc.dim("Update seq:")}      ${info.update_seq}`);
 
       if (info.props?.partitioned) {
         console.log(`  ${pc.dim("Type:")}            partitioned`);
       }
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── use ───────────────────────────────────────────────────────────────────────
 
-DbCommand
-  .command("use [name]")
+DbCommand.command("use [name]")
   .description("Set (or show) the current working database")
   .action(async (name?: string) => {
     const config = new ConfigManager();
@@ -182,16 +203,21 @@ DbCommand
       await config.setCurrentDb(name);
       console.log(pc.green(`✓ Current database set to "${name}"`));
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── compact ───────────────────────────────────────────────────────────────────
 
-DbCommand
-  .command("compact <name>")
-  .description("Trigger compaction for a database (or a design doc's view index)")
+DbCommand.command("compact <name>")
+  .description(
+    "Trigger compaction for a database (or a design doc's view index)",
+  )
   .option("--ddoc <ddoc>", "Compact a specific design document view index")
   .action(async (name: string, options) => {
     try {
@@ -199,7 +225,11 @@ DbCommand
 
       if (options.ddoc) {
         await client.compactView(name, options.ddoc);
-        console.log(pc.green(`✓ View compaction started for "${name}/_design/${options.ddoc}"`));
+        console.log(
+          pc.green(
+            `✓ View compaction started for "${name}/_design/${options.ddoc}"`,
+          ),
+        );
       } else {
         await client.compact(name);
         console.log(pc.green(`✓ Compaction started for "${name}"`));
@@ -207,15 +237,18 @@ DbCommand
 
       console.log(pc.dim("  Compaction runs in the background."));
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── view-cleanup ──────────────────────────────────────────────────────────────
 
-DbCommand
-  .command("view-cleanup <name>")
+DbCommand.command("view-cleanup <name>")
   .description("Clean up unreferenced view index files for a database")
   .action(async (name: string) => {
     try {
@@ -224,7 +257,11 @@ DbCommand
       console.log(pc.green(`✓ View cleanup started for "${name}"`));
       console.log(pc.dim("  Cleanup runs in the background."));
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });

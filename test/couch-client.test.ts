@@ -1,13 +1,16 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { CouchClient } from "../src/lib/couch-client";
 
-const COUCH_URL = process.env.COUCHDB_URL ?? "http://admin:password@localhost:5984";
+const COUCH_URL =
+  process.env.COUCHDB_URL ?? "http://admin:password@localhost:5984";
 const TEST_DB = "sillon-test-db";
 
 // Check if CouchDB is available before running integration tests
 async function isCouchAvailable(): Promise<boolean> {
   try {
-    const res = await fetch(`${COUCH_URL}/`, { signal: AbortSignal.timeout(2000) });
+    const res = await fetch(`${COUCH_URL}/`, {
+      signal: AbortSignal.timeout(2000),
+    });
     return res.ok;
   } catch {
     return false;
@@ -129,7 +132,9 @@ describe("CouchClient (integration)", () => {
   });
 
   itSkip("getDocument throws for missing doc", async () => {
-    await expect(client.getDocument(TEST_DB, "definitely-not-there")).rejects.toThrow();
+    await expect(
+      client.getDocument(TEST_DB, "definitely-not-there"),
+    ).rejects.toThrow();
   });
 
   // ── Bulk operations ──────────────────────────────────────────────────────
@@ -235,7 +240,9 @@ describe("CouchClient (integration)", () => {
       await client.putDocument(TEST_DB, {
         _id: "_design/test-ddoc",
         views: {
-          all: { map: "function(doc) { if(!doc._id.startsWith('_')) emit(doc._id, null); }" },
+          all: {
+            map: "function(doc) { if(!doc._id.startsWith('_')) emit(doc._id, null); }",
+          },
         },
       });
     } catch {
@@ -244,7 +251,9 @@ describe("CouchClient (integration)", () => {
       await client.putDocument(TEST_DB, {
         ...existing,
         views: {
-          all: { map: "function(doc) { if(!doc._id.startsWith('_')) emit(doc._id, null); }" },
+          all: {
+            map: "function(doc) { if(!doc._id.startsWith('_')) emit(doc._id, null); }",
+          },
         },
       });
     }
@@ -254,16 +263,30 @@ describe("CouchClient (integration)", () => {
   });
 
   itSkip("queryView respects limit option", async () => {
-    const result = await client.queryView(TEST_DB, "test-ddoc", "all", { limit: 1 });
+    const result = await client.queryView(TEST_DB, "test-ddoc", "all", {
+      limit: 1,
+    });
     expect(result.rows.length).toBeLessThanOrEqual(1);
   });
 
   // ── Mango / _find ────────────────────────────────────────────────────────
 
   itSkip("mangoQuery returns matching documents", async () => {
-    await client.putDocument(TEST_DB, { _id: "mango-1", type: "fruit", color: "red" });
-    await client.putDocument(TEST_DB, { _id: "mango-2", type: "fruit", color: "green" });
-    await client.putDocument(TEST_DB, { _id: "mango-3", type: "veggie", color: "green" });
+    await client.putDocument(TEST_DB, {
+      _id: "mango-1",
+      type: "fruit",
+      color: "red",
+    });
+    await client.putDocument(TEST_DB, {
+      _id: "mango-2",
+      type: "fruit",
+      color: "green",
+    });
+    await client.putDocument(TEST_DB, {
+      _id: "mango-3",
+      type: "veggie",
+      color: "green",
+    });
 
     const result = await client.mangoQuery(TEST_DB, {
       selector: { type: "fruit" },
@@ -334,7 +357,9 @@ describe("CouchClient (integration)", () => {
     // Delete the doc first so we can purge it
     await client.deleteDocument(TEST_DB, "purge-me", put.rev!);
 
-    const deleted = await client.getDocument(TEST_DB, "purge-me").catch(() => null);
+    const deleted = await client
+      .getDocument(TEST_DB, "purge-me")
+      .catch(() => null);
     // Find the deleted rev
     const allDocs = await client.getAllDocs(TEST_DB, {
       keys: ["purge-me"],

@@ -1,10 +1,11 @@
 import { Command } from "commander";
 import pc from "picocolors";
-import { CouchClient, type MangoQuery } from "../lib/couch-client.js";
 import { ConfigManager } from "../lib/config.js";
+import { CouchClient, type MangoQuery } from "../lib/couch-client.js";
 
-export const PartitionCommand = new Command("partition")
-  .description("Partitioned database operations (CouchDB 3.x)");
+export const PartitionCommand = new Command("partition").description(
+  "Partitioned database operations (CouchDB 3.x)",
+);
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -14,7 +15,7 @@ async function resolveDb(arg?: string): Promise<string> {
   const current = await config.getCurrentDb();
   if (current) return current;
   throw new Error(
-    "No database specified.\n  Pass a database name or run: sillon db use <name>"
+    "No database specified.\n  Pass a database name or run: sillon db use <name>",
   );
 }
 
@@ -40,13 +41,12 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
 // ── partition info ────────────────────────────────────────────────────────────
 
-PartitionCommand
-  .command("info <partition> [db]")
+PartitionCommand.command("info <partition> [db]")
   .description("Show information about a partition")
   .option("--json", "Output as JSON")
   .action(async (partition: string, db?: string, options?) => {
@@ -63,18 +63,25 @@ PartitionCommand
       console.log(pc.cyan(`🗂️  Partition: ${pc.bold(partition)} in "${name}"`));
       console.log(`  ${pc.dim("Documents:")}      ${info.doc_count}`);
       console.log(`  ${pc.dim("Deleted:")}        ${info.doc_del_count}`);
-      console.log(`  ${pc.dim("Size (active):")}  ${formatBytes(info.sizes?.active ?? 0)}`);
-      console.log(`  ${pc.dim("Size (ext):")}     ${formatBytes(info.sizes?.external ?? 0)}`);
+      console.log(
+        `  ${pc.dim("Size (active):")}  ${formatBytes(info.sizes?.active ?? 0)}`,
+      );
+      console.log(
+        `  ${pc.dim("Size (ext):")}     ${formatBytes(info.sizes?.external ?? 0)}`,
+      );
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── partition list ────────────────────────────────────────────────────────────
 
-PartitionCommand
-  .command("list <partition> [db]")
+PartitionCommand.command("list <partition> [db]")
   .description("List documents in a partition")
   .option("--limit <n>", "Max number of results")
   .option("--skip <n>", "Documents to skip")
@@ -87,8 +94,12 @@ PartitionCommand
       const client = await getClient();
 
       const result = await client.getPartitionDocs(name, partition, {
-        limit: options.limit ? parseInt(options.limit as string, 10) : undefined,
-        skip: options.skip ? parseInt(options.skip as string, 10) : undefined,
+        limit: options.limit
+          ? Number.parseInt(options.limit as string, 10)
+          : undefined,
+        skip: options.skip
+          ? Number.parseInt(options.skip as string, 10)
+          : undefined,
         descending: !!options.descending,
         include_docs: !!options.includeDocs,
       });
@@ -100,7 +111,8 @@ PartitionCommand
 
       const rows = result.rows.filter((r) => !r.value.deleted);
       console.log(
-        pc.cyan(`📄 "${name}:${partition}"`) + pc.dim(` — ${result.total_rows} total`)
+        pc.cyan(`📄 "${name}:${partition}"`) +
+          pc.dim(` — ${result.total_rows} total`),
       );
 
       if (rows.length === 0) {
@@ -116,27 +128,41 @@ PartitionCommand
           if (keys.length > 0) {
             const preview = keys
               .slice(0, 4)
-              .map((k) => `${k}: ${JSON.stringify((row.doc as Record<string, unknown>)[k]).slice(0, 20)}`)
+              .map(
+                (k) =>
+                  `${k}: ${JSON.stringify((row.doc as Record<string, unknown>)[k]).slice(0, 20)}`,
+              )
               .join(", ");
-            console.log(`    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`);
+            console.log(
+              `    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`,
+            );
           }
         }
       }
 
       if (result.rows.length < result.total_rows) {
-        console.log(pc.dim(`\n  Showing ${result.rows.length} of ${result.total_rows}. Use --limit / --skip to paginate.`));
+        console.log(
+          pc.dim(
+            `\n  Showing ${result.rows.length} of ${result.total_rows}. Use --limit / --skip to paginate.`,
+          ),
+        );
       }
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── partition find ────────────────────────────────────────────────────────────
 
-PartitionCommand
-  .command("find <partition> [db]")
-  .description("Query a partition using a Mango selector (reads JSON from stdin)")
+PartitionCommand.command("find <partition> [db]")
+  .description(
+    "Query a partition using a Mango selector (reads JSON from stdin)",
+  )
   .option("--limit <n>", "Max number of results")
   .option("--skip <n>", "Documents to skip")
   .option("--fields <fields>", "Comma-separated list of fields to return")
@@ -164,17 +190,25 @@ PartitionCommand
         "selector" in (parsed as Record<string, unknown>)
       ) {
         query = parsed as MangoQuery;
-      } else if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+      } else if (
+        parsed !== null &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed)
+      ) {
         query = { selector: parsed as MangoQuery["selector"] };
       } else {
         throw new Error("JSON must be a selector object or { selector: ... }");
       }
 
-      if (options.limit) query.limit = parseInt(options.limit as string, 10);
-      if (options.skip) query.skip = parseInt(options.skip as string, 10);
+      if (options.limit)
+        query.limit = Number.parseInt(options.limit as string, 10);
+      if (options.skip)
+        query.skip = Number.parseInt(options.skip as string, 10);
       if (options.bookmark) query.bookmark = options.bookmark as string;
       if (options.fields) {
-        query.fields = (options.fields as string).split(",").map((f: string) => f.trim());
+        query.fields = (options.fields as string)
+          .split(",")
+          .map((f: string) => f.trim());
       }
       if (options.sort) {
         try {
@@ -193,7 +227,7 @@ PartitionCommand
 
       console.log(
         pc.cyan(`🔎 "${name}:${partition}"`) +
-        pc.dim(` — ${result.docs.length} result(s)`)
+          pc.dim(` — ${result.docs.length} result(s)`),
       );
 
       if (result.warning) console.log(pc.yellow(`  ⚠  ${result.warning}`));
@@ -202,7 +236,9 @@ PartitionCommand
         console.log(pc.dim("  (no results)"));
       } else {
         for (const doc of result.docs) {
-          const rev = doc._rev ? pc.dim(` rev: ${String(doc._rev).slice(0, 10)}…`) : "";
+          const rev = doc._rev
+            ? pc.dim(` rev: ${String(doc._rev).slice(0, 10)}…`)
+            : "";
           console.log(`  ${pc.blue("▸")} ${doc._id}${rev}`);
           const keys = Object.keys(doc).filter((k) => !k.startsWith("_"));
           if (keys.length > 0) {
@@ -210,7 +246,9 @@ PartitionCommand
               .slice(0, 4)
               .map((k) => `${k}: ${JSON.stringify(doc[k]).slice(0, 24)}`)
               .join(", ");
-            console.log(`    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`);
+            console.log(
+              `    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`,
+            );
           }
         }
       }
@@ -219,15 +257,18 @@ PartitionCommand
         console.log(pc.dim(`\n  Next page: --bookmark ${result.bookmark}`));
       }
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── partition view ────────────────────────────────────────────────────────────
 
-PartitionCommand
-  .command("view <ddoc> <view> <partition> [db]")
+PartitionCommand.command("view <ddoc> <view> <partition> [db]")
   .description("Query a view scoped to a partition")
   .option("--key <json>", "Exact key (JSON)")
   .option("--startkey <json>", "Start of key range (JSON)")
@@ -241,57 +282,93 @@ PartitionCommand
   .option("--group", "Group by key")
   .option("--group-level <n>", "Group level depth")
   .option("--json", "Output as JSON")
-  .action(async (ddoc: string, view: string, partition: string, db?: string, options?) => {
-    try {
-      const name = await resolveDb(db);
-      const client = await getClient();
+  .action(
+    async (
+      ddoc: string,
+      view: string,
+      partition: string,
+      db?: string,
+      options?,
+    ) => {
+      try {
+        const name = await resolveDb(db);
+        const client = await getClient();
 
-      const parseJson = (val: string | undefined, flag: string): unknown => {
-        if (val === undefined) return undefined;
-        try { return JSON.parse(val); }
-        catch { throw new Error(`Invalid JSON for ${flag}: ${val}`); }
-      };
+        const parseJson = (val: string | undefined, flag: string): unknown => {
+          if (val === undefined) return undefined;
+          try {
+            return JSON.parse(val);
+          } catch {
+            throw new Error(`Invalid JSON for ${flag}: ${val}`);
+          }
+        };
 
-      let reduceOpt: boolean | undefined;
-      if (options.reduce === false) reduceOpt = false;
-      else if (options.reduce === true) reduceOpt = true;
+        let reduceOpt: boolean | undefined;
+        if (options.reduce === false) reduceOpt = false;
+        else if (options.reduce === true) reduceOpt = true;
 
-      const ddocName = ddoc.startsWith("_design/") ? ddoc.slice(8) : ddoc;
+        const ddocName = ddoc.startsWith("_design/") ? ddoc.slice(8) : ddoc;
 
-      const result = await client.queryPartitionView(name, partition, ddocName, view, {
-        key: parseJson(options.key as string | undefined, "--key"),
-        startkey: parseJson(options.startkey as string | undefined, "--startkey"),
-        endkey: parseJson(options.endkey as string | undefined, "--endkey"),
-        limit: options.limit ? parseInt(options.limit as string, 10) : undefined,
-        skip: options.skip ? parseInt(options.skip as string, 10) : undefined,
-        descending: !!options.descending,
-        include_docs: !!options.includeDocs,
-        reduce: reduceOpt,
-        group: !!options.group,
-        group_level: options.groupLevel ? parseInt(options.groupLevel as string, 10) : undefined,
-      });
-
-      if (options.json) {
-        console.log(JSON.stringify(result, null, 2));
-        return;
-      }
-
-      const total = result.total_rows !== undefined ? ` — ${result.total_rows} total` : "";
-      console.log(pc.cyan(`📊 ${ddocName}/${view}`) + pc.dim(` [partition: ${partition}]${total}`));
-      console.log(pc.dim(`  ${result.rows.length} row(s)`));
-
-      if (result.rows.length === 0) {
-        console.log(pc.dim("  (no results)"));
-        return;
-      }
-
-      for (const row of result.rows) {
-        console.log(
-          `  ${pc.blue("▸")} ${pc.bold(JSON.stringify(row.key))}  ${pc.dim("→")}  ${JSON.stringify(row.value)}`
+        const result = await client.queryPartitionView(
+          name,
+          partition,
+          ddocName,
+          view,
+          {
+            key: parseJson(options.key as string | undefined, "--key"),
+            startkey: parseJson(
+              options.startkey as string | undefined,
+              "--startkey",
+            ),
+            endkey: parseJson(options.endkey as string | undefined, "--endkey"),
+            limit: options.limit
+              ? Number.parseInt(options.limit as string, 10)
+              : undefined,
+            skip: options.skip
+              ? Number.parseInt(options.skip as string, 10)
+              : undefined,
+            descending: !!options.descending,
+            include_docs: !!options.includeDocs,
+            reduce: reduceOpt,
+            group: !!options.group,
+            group_level: options.groupLevel
+              ? Number.parseInt(options.groupLevel as string, 10)
+              : undefined,
+          },
         );
+
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+
+        const total =
+          result.total_rows !== undefined
+            ? ` — ${result.total_rows} total`
+            : "";
+        console.log(
+          pc.cyan(`📊 ${ddocName}/${view}`) +
+            pc.dim(` [partition: ${partition}]${total}`),
+        );
+        console.log(pc.dim(`  ${result.rows.length} row(s)`));
+
+        if (result.rows.length === 0) {
+          console.log(pc.dim("  (no results)"));
+          return;
+        }
+
+        for (const row of result.rows) {
+          console.log(
+            `  ${pc.blue("▸")} ${pc.bold(JSON.stringify(row.key))}  ${pc.dim("→")}  ${JSON.stringify(row.value)}`,
+          );
+        }
+      } catch (error) {
+        console.error(
+          pc.red(
+            `Error: ${error instanceof Error ? error.message : String(error)}`,
+          ),
+        );
+        process.exit(1);
       }
-    } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
-      process.exit(1);
-    }
-  });
+    },
+  );

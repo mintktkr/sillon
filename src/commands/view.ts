@@ -1,10 +1,15 @@
 import { Command } from "commander";
 import pc from "picocolors";
-import { CouchClient, type Document, type ViewResult } from "../lib/couch-client.js";
 import { ConfigManager } from "../lib/config.js";
+import {
+  CouchClient,
+  type Document,
+  type ViewResult,
+} from "../lib/couch-client.js";
 
-export const ViewCommand = new Command("view")
-  .description("Design document & view operations");
+export const ViewCommand = new Command("view").description(
+  "Design document & view operations",
+);
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -14,7 +19,7 @@ async function resolveDb(arg?: string): Promise<string> {
   const current = await config.getCurrentDb();
   if (current) return current;
   throw new Error(
-    "No database specified.\n  Pass a database name or run: sillon db use <name>"
+    "No database specified.\n  Pass a database name or run: sillon db use <name>",
   );
 }
 
@@ -31,8 +36,7 @@ function ddocName(id: string): string {
 
 // ── list ──────────────────────────────────────────────────────────────────────
 
-ViewCommand
-  .command("list [db]")
+ViewCommand.command("list [db]")
   .description("List design documents and their views")
   .option("--json", "Output as JSON")
   .action(async (db?: string, options?) => {
@@ -67,36 +71,47 @@ ViewCommand
         };
 
         console.log(`\n  ${pc.bold(pc.blue(ddocName(row.id)))}`);
-        console.log(`  ${pc.dim("rev:")} ${String(doc._rev ?? "").slice(0, 12)}…`);
+        console.log(
+          `  ${pc.dim("rev:")} ${String(doc._rev ?? "").slice(0, 12)}…`,
+        );
 
         if (doc.views && Object.keys(doc.views).length > 0) {
           console.log(`  ${pc.dim("views:")}`);
           for (const [viewName, def] of Object.entries(doc.views)) {
             const hasReduce = !!def.reduce;
-            const badge = hasReduce ? pc.yellow(" [map/reduce]") : pc.dim(" [map]");
+            const badge = hasReduce
+              ? pc.yellow(" [map/reduce]")
+              : pc.dim(" [map]");
             console.log(`    ${pc.blue("▸")} ${viewName}${badge}`);
           }
         }
 
         if (doc.indexes && Object.keys(doc.indexes).length > 0) {
-          console.log(`  ${pc.dim("search indexes:")} ${Object.keys(doc.indexes).join(", ")}`);
+          console.log(
+            `  ${pc.dim("search indexes:")} ${Object.keys(doc.indexes).join(", ")}`,
+          );
         }
         if (doc.filters && Object.keys(doc.filters).length > 0) {
-          console.log(`  ${pc.dim("filters:")} ${Object.keys(doc.filters).join(", ")}`);
+          console.log(
+            `  ${pc.dim("filters:")} ${Object.keys(doc.filters).join(", ")}`,
+          );
         }
       }
 
       console.log(pc.dim(`\nTotal: ${ddocs.length} design document(s)`));
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── get ───────────────────────────────────────────────────────────────────────
 
-ViewCommand
-  .command("get <ddoc> [db]")
+ViewCommand.command("get <ddoc> [db]")
   .description("Show a design document")
   .option("--json", "Output as JSON (default)")
   .action(async (ddoc: string, db?: string, _options?) => {
@@ -108,15 +123,18 @@ ViewCommand
       const doc = await client.getDocument(name, docId);
       console.log(JSON.stringify(doc, null, 2));
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── query ─────────────────────────────────────────────────────────────────────
 
-ViewCommand
-  .command("query <ddoc> <view> [db]")
+ViewCommand.command("query <ddoc> <view> [db]")
   .description("Query a view")
   .option("--key <json>", "Exact key to match (JSON value)")
   .option("--startkey <json>", "Start of key range (JSON value)")
@@ -160,16 +178,28 @@ ViewCommand
         view,
         {
           key: parseJsonOpt(options.key as string | undefined, "--key"),
-          startkey: parseJsonOpt(options.startkey as string | undefined, "--startkey"),
-          endkey: parseJsonOpt(options.endkey as string | undefined, "--endkey"),
-          limit: options.limit ? parseInt(options.limit as string, 10) : undefined,
-          skip: options.skip ? parseInt(options.skip as string, 10) : undefined,
+          startkey: parseJsonOpt(
+            options.startkey as string | undefined,
+            "--startkey",
+          ),
+          endkey: parseJsonOpt(
+            options.endkey as string | undefined,
+            "--endkey",
+          ),
+          limit: options.limit
+            ? Number.parseInt(options.limit as string, 10)
+            : undefined,
+          skip: options.skip
+            ? Number.parseInt(options.skip as string, 10)
+            : undefined,
           descending: !!options.descending,
           include_docs: !!options.includeDocs,
           reduce: reduceOpt,
           group: !!options.group,
-          group_level: options.groupLevel ? parseInt(options.groupLevel as string, 10) : undefined,
-        }
+          group_level: options.groupLevel
+            ? Number.parseInt(options.groupLevel as string, 10)
+            : undefined,
+        },
       );
 
       if (options.json) {
@@ -177,9 +207,8 @@ ViewCommand
         return;
       }
 
-      const total = result.total_rows !== undefined
-        ? ` — ${result.total_rows} total`
-        : "";
+      const total =
+        result.total_rows !== undefined ? ` — ${result.total_rows} total` : "";
       console.log(pc.cyan(`📊 ${ddocName(ddoc)}/${view}`) + pc.dim(total));
       console.log(pc.dim(`  ${result.rows.length} row(s)`));
 
@@ -192,25 +221,37 @@ ViewCommand
         const keyStr = JSON.stringify(row.key);
         const valStr = JSON.stringify(row.value);
         console.log(
-          `  ${pc.blue("▸")} ${pc.bold(keyStr)}  ${pc.dim("→")}  ${valStr}`
+          `  ${pc.blue("▸")} ${pc.bold(keyStr)}  ${pc.dim("→")}  ${valStr}`,
         );
         if (row.doc) {
           const keys = Object.keys(row.doc).filter((k) => !k.startsWith("_"));
           if (keys.length > 0) {
             const preview = keys
               .slice(0, 4)
-              .map((k) => `${k}: ${JSON.stringify((row.doc as Document)[k]).slice(0, 24)}`)
+              .map(
+                (k) =>
+                  `${k}: ${JSON.stringify((row.doc as Document)[k]).slice(0, 24)}`,
+              )
               .join(", ");
-            console.log(`    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`);
+            console.log(
+              `    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`,
+            );
           }
         }
       }
 
-      if (result.total_rows !== undefined && result.rows.length < result.total_rows) {
+      if (
+        result.total_rows !== undefined &&
+        result.rows.length < result.total_rows
+      ) {
         console.log(pc.dim(`\n  Use --limit / --skip to paginate.`));
       }
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });

@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import pc from "picocolors";
-import { CouchClient, type MangoQuery } from "../lib/couch-client.js";
 import { ConfigManager } from "../lib/config.js";
+import { CouchClient, type MangoQuery } from "../lib/couch-client.js";
 
 // ── shared helpers ────────────────────────────────────────────────────────────
 
@@ -11,7 +11,7 @@ async function resolveDb(arg?: string): Promise<string> {
   const current = await config.getCurrentDb();
   if (current) return current;
   throw new Error(
-    "No database specified.\n  Pass a database name or run: sillon db use <name>"
+    "No database specified.\n  Pass a database name or run: sillon db use <name>",
   );
 }
 
@@ -24,7 +24,9 @@ async function getClient(): Promise<CouchClient> {
 /** Read all stdin as a string. Errors if stdin is a TTY. */
 async function readStdin(): Promise<string> {
   if (process.stdin.isTTY) {
-    throw new Error("No JSON provided — pipe JSON to stdin:\n  echo '{...}' | sillon find");
+    throw new Error(
+      "No JSON provided — pipe JSON to stdin:\n  echo '{...}' | sillon find",
+    );
   }
   const chunks: Buffer[] = [];
   for await (const chunk of process.stdin) {
@@ -76,17 +78,23 @@ export const FindCommand = new Command("find")
         // Treat it as a bare selector
         query = { selector: parsed as MangoQuery["selector"] };
       } else {
-        throw new Error("JSON must be an object with a 'selector' key or a bare selector object");
+        throw new Error(
+          "JSON must be an object with a 'selector' key or a bare selector object",
+        );
       }
 
       // CLI options override fields in the query object
-      if (options.limit) query.limit = parseInt(options.limit as string, 10);
-      if (options.skip) query.skip = parseInt(options.skip as string, 10);
+      if (options.limit)
+        query.limit = Number.parseInt(options.limit as string, 10);
+      if (options.skip)
+        query.skip = Number.parseInt(options.skip as string, 10);
       if (options.bookmark) query.bookmark = options.bookmark as string;
       if (options.stats) query.execution_stats = true;
 
       if (options.fields) {
-        query.fields = (options.fields as string).split(",").map((f: string) => f.trim());
+        query.fields = (options.fields as string)
+          .split(",")
+          .map((f: string) => f.trim());
       }
 
       if (options.sort) {
@@ -109,8 +117,7 @@ export const FindCommand = new Command("find")
       }
 
       console.log(
-        pc.cyan(`🔎 "${name}"`) +
-        pc.dim(` — ${result.docs.length} result(s)`)
+        pc.cyan(`🔎 "${name}"`) + pc.dim(` — ${result.docs.length} result(s)`),
       );
 
       if (result.warning) {
@@ -122,7 +129,9 @@ export const FindCommand = new Command("find")
       } else {
         for (const doc of result.docs) {
           const id = doc._id;
-          const rev = doc._rev ? pc.dim(` rev: ${String(doc._rev).slice(0, 10)}…`) : "";
+          const rev = doc._rev
+            ? pc.dim(` rev: ${String(doc._rev).slice(0, 10)}…`)
+            : "";
           console.log(`  ${pc.blue("▸")} ${id}${rev}`);
 
           const keys = Object.keys(doc).filter((k) => !k.startsWith("_"));
@@ -131,7 +140,9 @@ export const FindCommand = new Command("find")
               .slice(0, 4)
               .map((k) => `${k}: ${JSON.stringify(doc[k]).slice(0, 24)}`)
               .join(", ");
-            console.log(`    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`);
+            console.log(
+              `    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`,
+            );
           }
         }
       }
@@ -142,27 +153,33 @@ export const FindCommand = new Command("find")
 
       if (result.execution_stats) {
         const s = result.execution_stats;
-        console.log(pc.dim(
-          `\n  Stats: ${s.results_returned} returned, ` +
-          `${s.total_docs_examined} docs examined, ` +
-          `${s.execution_time_ms.toFixed(2)}ms`
-        ));
+        console.log(
+          pc.dim(
+            `\n  Stats: ${s.results_returned} returned, ` +
+              `${s.total_docs_examined} docs examined, ` +
+              `${s.execution_time_ms.toFixed(2)}ms`,
+          ),
+        );
       }
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // ── index ─────────────────────────────────────────────────────────────────────
 
-export const IndexCommand = new Command("index")
-  .description("Manage Mango indexes");
+export const IndexCommand = new Command("index").description(
+  "Manage Mango indexes",
+);
 
 // index list
 
-IndexCommand
-  .command("list [db]")
+IndexCommand.command("list [db]")
   .description("List Mango indexes defined on a database")
   .option("--json", "Output as JSON")
   .action(async (db?: string, options?) => {
@@ -180,7 +197,9 @@ IndexCommand
       console.log(pc.dim(`  Total: ${result.total_rows}`));
 
       for (const idx of result.indexes) {
-        const ddocLabel = idx.ddoc ? pc.dim(` (${idx.ddoc})`) : pc.dim(" (special)");
+        const ddocLabel = idx.ddoc
+          ? pc.dim(` (${idx.ddoc})`)
+          : pc.dim(" (special)");
         const fields = idx.def.fields
           .map((f) => {
             const entries = Object.entries(f);
@@ -193,15 +212,18 @@ IndexCommand
         console.log(`    ${pc.dim("fields:")} ${fields || "(none)"}`);
       }
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // index create
 
-IndexCommand
-  .command("create [db]")
+IndexCommand.command("create [db]")
   .description("Create a Mango index (reads JSON from stdin)")
   .option("--json", "Output response as JSON")
   .action(async (db?: string, options?) => {
@@ -242,7 +264,7 @@ IndexCommand
       } else {
         throw new Error(
           "JSON must have an 'index' key with 'fields', e.g.:\n" +
-          '  { "index": { "fields": ["name"] }, "name": "by_name" }'
+            '  { "index": { "fields": ["name"] }, "name": "by_name" }',
         );
       }
 
@@ -253,19 +275,25 @@ IndexCommand
         return;
       }
 
-      const status = result.result === "created" ? pc.green("✓ Created") : pc.yellow("● Exists");
+      const status =
+        result.result === "created"
+          ? pc.green("✓ Created")
+          : pc.yellow("● Exists");
       console.log(`${status} index "${result.name}"`);
       console.log(`  ${pc.dim("ddoc:")} ${result.id}`);
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });
 
 // index delete
 
-IndexCommand
-  .command("delete <ddoc> <name> [db]")
+IndexCommand.command("delete <ddoc> <name> [db]")
   .alias("rm")
   .description("Delete a Mango index")
   .action(async (ddoc: string, indexName: string, db?: string) => {
@@ -277,7 +305,11 @@ IndexCommand
       await client.deleteIndex(dbName, ddocId, indexName);
       console.log(pc.green(`✓ Deleted index "${indexName}" from ${ddocId}`));
     } catch (error) {
-      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
+      console.error(
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       process.exit(1);
     }
   });

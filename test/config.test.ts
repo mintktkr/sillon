@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { ConfigManager } from "../src/lib/config";
-import { mkdir, rm } from "fs/promises";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { homedir } from "os";
 import { join } from "path";
+import { mkdir, rm } from "fs/promises";
+import { ConfigManager } from "../src/lib/config";
 
 describe("ConfigManager", () => {
   const testDir = join(homedir(), ".config", "sillon-test");

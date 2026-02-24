@@ -1,16 +1,16 @@
 #!/usr/bin/env bun
 import { Command } from "commander";
 import pc from "picocolors";
-import { LocalCommand } from "./commands/local.js";
 import { ConnectCommand } from "./commands/connect.js";
 import { DbCommand } from "./commands/db.js";
 import { DocCommand } from "./commands/doc.js";
-import { ReplCommand } from "./commands/repl.js";
-import { ViewCommand } from "./commands/view.js";
 import { FindCommand, IndexCommand } from "./commands/find.js";
-import { ServerCommand } from "./commands/server.js";
+import { LocalCommand } from "./commands/local.js";
 import { PartitionCommand } from "./commands/partition.js";
+import { ReplCommand } from "./commands/repl.js";
 import { SearchCommand } from "./commands/search.js";
+import { ServerCommand } from "./commands/server.js";
+import { ViewCommand } from "./commands/view.js";
 
 const program = new Command()
   .name("sillon")

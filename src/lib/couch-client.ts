@@ -122,7 +122,11 @@ export interface MangoIndexResult {
 
 export interface NouveauSearchResult {
   total_hits: number;
-  hits: Array<{ id: string; order: unknown[]; fields?: Record<string, unknown> }>;
+  hits: Array<{
+    id: string;
+    order: unknown[];
+    fields?: Record<string, unknown>;
+  }>;
   bookmark?: string;
 }
 
@@ -162,7 +166,7 @@ export class CouchClient {
 
   private async request(
     path: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<Response> {
     const url = `${this.baseUrl}${path}`;
     const response = await fetch(url, {
@@ -197,7 +201,11 @@ export class CouchClient {
     vendor?: { name: string; version?: string };
   }> {
     const response = await this.request("/");
-    return response.json() as Promise<{ couchdb: string; version: string; vendor?: { name: string; version?: string } }>;
+    return response.json() as Promise<{
+      couchdb: string;
+      version: string;
+      vendor?: { name: string; version?: string };
+    }>;
   }
 
   async getActiveTasks(): Promise<unknown[]> {
@@ -214,7 +222,7 @@ export class CouchClient {
 
   async createDatabase(
     name: string,
-    options: { partitioned?: boolean } = {}
+    options: { partitioned?: boolean } = {},
   ): Promise<{ ok: boolean }> {
     const qs = options.partitioned ? "?partitioned=true" : "";
     const response = await this.request(`/${name}${qs}`, { method: "PUT" });
@@ -239,13 +247,17 @@ export class CouchClient {
 
   /** Trigger compaction for a specific design document's view index. */
   async compactView(db: string, ddoc: string): Promise<{ ok: boolean }> {
-    const response = await this.request(`/${db}/_compact/${ddoc}`, { method: "POST" });
+    const response = await this.request(`/${db}/_compact/${ddoc}`, {
+      method: "POST",
+    });
     return response.json() as Promise<{ ok: boolean }>;
   }
 
   /** Cleanup unreferenced view index files. */
   async viewCleanup(db: string): Promise<{ ok: boolean }> {
-    const response = await this.request(`/${db}/_view_cleanup`, { method: "POST" });
+    const response = await this.request(`/${db}/_view_cleanup`, {
+      method: "POST",
+    });
     return response.json() as Promise<{ ok: boolean }>;
   }
 
@@ -255,7 +267,10 @@ export class CouchClient {
    * Fetch all documents from _all_docs. Pass `include_docs: true` to get
    * the full document bodies. Filter by key range or specific keys list.
    */
-  async getAllDocs(db: string, options: AllDocsOptions = {}): Promise<AllDocsResult> {
+  async getAllDocs(
+    db: string,
+    options: AllDocsOptions = {},
+  ): Promise<AllDocsResult> {
     const { keys, ...queryOptions } = options;
 
     if (keys) {
@@ -274,17 +289,24 @@ export class CouchClient {
 
     // GET form
     const params = new URLSearchParams();
-    if (queryOptions.startkey !== undefined) params.set("startkey", JSON.stringify(queryOptions.startkey));
-    if (queryOptions.endkey !== undefined) params.set("endkey", JSON.stringify(queryOptions.endkey));
-    if (queryOptions.limit !== undefined) params.set("limit", queryOptions.limit.toString());
-    if (queryOptions.skip !== undefined) params.set("skip", queryOptions.skip.toString());
+    if (queryOptions.startkey !== undefined)
+      params.set("startkey", JSON.stringify(queryOptions.startkey));
+    if (queryOptions.endkey !== undefined)
+      params.set("endkey", JSON.stringify(queryOptions.endkey));
+    if (queryOptions.limit !== undefined)
+      params.set("limit", queryOptions.limit.toString());
+    if (queryOptions.skip !== undefined)
+      params.set("skip", queryOptions.skip.toString());
     if (queryOptions.descending) params.set("descending", "true");
     if (queryOptions.include_docs) params.set("include_docs", "true");
-    if (queryOptions.inclusive_end === false) params.set("inclusive_end", "false");
+    if (queryOptions.inclusive_end === false)
+      params.set("inclusive_end", "false");
     if (queryOptions.conflicts) params.set("conflicts", "true");
 
     const qs = params.toString();
-    const response = await this.request(`/${db}/_all_docs${qs ? "?" + qs : ""}`);
+    const response = await this.request(
+      `/${db}/_all_docs${qs ? "?" + qs : ""}`,
+    );
     return response.json() as Promise<AllDocsResult>;
   }
 
@@ -311,7 +333,7 @@ export class CouchClient {
    */
   async createDocument(
     db: string,
-    doc: Omit<Document, "_id"> & { _id?: string }
+    doc: Omit<Document, "_id"> & { _id?: string },
   ): Promise<{ ok: boolean; id: string; rev: string }> {
     const response = await this.request(`/${db}`, {
       method: "POST",
@@ -322,7 +344,7 @@ export class CouchClient {
 
   async putDocument(
     db: string,
-    doc: Document
+    doc: Document,
   ): Promise<{ ok: boolean; id: string; rev: string }> {
     const id = encodeURIComponent(doc._id);
     const response = await this.request(`/${db}/${id}`, {
@@ -335,11 +357,11 @@ export class CouchClient {
   async deleteDocument(
     db: string,
     id: string,
-    rev: string
+    rev: string,
   ): Promise<{ ok: boolean; id: string; rev: string }> {
     const response = await this.request(
       `/${db}/${encodeURIComponent(id)}?rev=${encodeURIComponent(rev)}`,
-      { method: "DELETE" }
+      { method: "DELETE" },
     );
     return response.json() as Promise<{ ok: boolean; id: string; rev: string }>;
   }
@@ -351,7 +373,7 @@ export class CouchClient {
   async bulkDocs(
     db: string,
     docs: Array<Document | (Document & { _deleted: true })>,
-    options: { new_edits?: boolean } = {}
+    options: { new_edits?: boolean } = {},
   ): Promise<BulkDocsResult[]> {
     const body: Record<string, unknown> = { docs };
     if (options.new_edits === false) body.new_edits = false;
@@ -380,20 +402,25 @@ export class CouchClient {
       reduce?: boolean;
       group?: boolean;
       group_level?: number;
-    } = {}
+    } = {},
   ): Promise<ViewResult> {
     const params = new URLSearchParams();
 
-    if (options.key !== undefined) params.set("key", JSON.stringify(options.key));
-    if (options.startkey !== undefined) params.set("startkey", JSON.stringify(options.startkey));
-    if (options.endkey !== undefined) params.set("endkey", JSON.stringify(options.endkey));
-    if (options.limit !== undefined) params.set("limit", options.limit.toString());
+    if (options.key !== undefined)
+      params.set("key", JSON.stringify(options.key));
+    if (options.startkey !== undefined)
+      params.set("startkey", JSON.stringify(options.startkey));
+    if (options.endkey !== undefined)
+      params.set("endkey", JSON.stringify(options.endkey));
+    if (options.limit !== undefined)
+      params.set("limit", options.limit.toString());
     if (options.skip !== undefined) params.set("skip", options.skip.toString());
     if (options.descending) params.set("descending", "true");
     if (options.include_docs) params.set("include_docs", "true");
     if (options.reduce === false) params.set("reduce", "false");
     if (options.group) params.set("group", "true");
-    if (options.group_level !== undefined) params.set("group_level", options.group_level.toString());
+    if (options.group_level !== undefined)
+      params.set("group_level", options.group_level.toString());
 
     const qs = params.toString();
     const path = `/${db}/_design/${ddoc}/_view/${view}${qs ? "?" + qs : ""}`;
@@ -429,17 +456,25 @@ export class CouchClient {
       name?: string;
       ddoc?: string;
       type?: "json" | "text";
-    }
+    },
   ): Promise<{ result: string; id: string; name: string }> {
     const response = await this.request(`/${db}/_index`, {
       method: "POST",
       body: JSON.stringify(index),
     });
-    return response.json() as Promise<{ result: string; id: string; name: string }>;
+    return response.json() as Promise<{
+      result: string;
+      id: string;
+      name: string;
+    }>;
   }
 
   /** Delete a Mango index. */
-  async deleteIndex(db: string, ddoc: string, name: string): Promise<{ ok: boolean }> {
+  async deleteIndex(
+    db: string,
+    ddoc: string,
+    name: string,
+  ): Promise<{ ok: boolean }> {
     const response = await this.request(`/${db}/_index/${ddoc}/json/${name}`, {
       method: "DELETE",
     });
@@ -458,7 +493,7 @@ export class CouchClient {
       filter?: string;
       query_params?: Record<string, unknown>;
       doc_ids?: string[];
-    } = {}
+    } = {},
   ): Promise<{
     ok: boolean;
     session_id?: string;
@@ -471,7 +506,11 @@ export class CouchClient {
       body: JSON.stringify(body),
     });
 
-    return response.json() as Promise<{ ok: boolean; session_id?: string; source_last_seq?: number }>;
+    return response.json() as Promise<{
+      ok: boolean;
+      session_id?: string;
+      source_last_seq?: number;
+    }>;
   }
 
   /** List documents in _replicator database. */
@@ -481,13 +520,15 @@ export class CouchClient {
 
   /** Get a single replication job document from _replicator. */
   async getReplicationJob(id: string): Promise<ReplicationJobDoc> {
-    const response = await this.request(`/_replicator/${encodeURIComponent(id)}`);
+    const response = await this.request(
+      `/_replicator/${encodeURIComponent(id)}`,
+    );
     return response.json() as Promise<ReplicationJobDoc>;
   }
 
   /** Add a persistent replication job to _replicator. */
   async createReplicationJob(
-    job: Omit<ReplicationJobDoc, "_rev">
+    job: Omit<ReplicationJobDoc, "_rev">,
   ): Promise<{ ok: boolean; id: string; rev: string }> {
     const id = encodeURIComponent(job._id);
     const response = await this.request(`/_replicator/${id}`, {
@@ -500,23 +541,28 @@ export class CouchClient {
   /** Delete (cancel) a persistent replication job from _replicator. */
   async deleteReplicationJob(
     id: string,
-    rev: string
+    rev: string,
   ): Promise<{ ok: boolean; id: string; rev: string }> {
     const response = await this.request(
       `/_replicator/${encodeURIComponent(id)}?rev=${encodeURIComponent(rev)}`,
-      { method: "DELETE" }
+      { method: "DELETE" },
     );
     return response.json() as Promise<{ ok: boolean; id: string; rev: string }>;
   }
 
   /** Get active replication tasks from /_active_tasks. */
   async getReplicationTasks(): Promise<Array<Record<string, unknown>>> {
-    const tasks = await this.getActiveTasks() as Array<Record<string, unknown>>;
+    const tasks = (await this.getActiveTasks()) as Array<
+      Record<string, unknown>
+    >;
     return tasks.filter((t) => t["type"] === "replication");
   }
 
   /** List conflicted documents in a database. */
-  async getConflicts(db: string, options: { limit?: number } = {}): Promise<AllDocsResult> {
+  async getConflicts(
+    db: string,
+    options: { limit?: number } = {},
+  ): Promise<AllDocsResult> {
     return this.getAllDocs(db, {
       include_docs: true,
       conflicts: true,
@@ -532,13 +578,16 @@ export class CouchClient {
    */
   async purge(
     db: string,
-    docsRevs: Record<string, string[]>
+    docsRevs: Record<string, string[]>,
   ): Promise<{ purged: Record<string, string[]>; purge_seq: string }> {
     const response = await this.request(`/${db}/_purge`, {
       method: "POST",
       body: JSON.stringify(docsRevs),
     });
-    return response.json() as Promise<{ purged: Record<string, string[]>; purge_seq: string }>;
+    return response.json() as Promise<{
+      purged: Record<string, string[]>;
+      purge_seq: string;
+    }>;
   }
 
   /** Get the current purged infos limit (number of purged entries to retain). */
@@ -548,7 +597,10 @@ export class CouchClient {
   }
 
   /** Set the purged infos limit for a database. */
-  async setPurgedInfosLimit(db: string, limit: number): Promise<{ ok: boolean }> {
+  async setPurgedInfosLimit(
+    db: string,
+    limit: number,
+  ): Promise<{ ok: boolean }> {
     const response = await this.request(`/${db}/_purged_infos_limit`, {
       method: "PUT",
       body: JSON.stringify(limit),
@@ -559,14 +611,19 @@ export class CouchClient {
   // ── Partitioned databases (CouchDB 3.x) ──────────────────────────────────
 
   /** Get info about a specific partition of a partitioned database. */
-  async getPartitionInfo(db: string, partition: string): Promise<{
+  async getPartitionInfo(
+    db: string,
+    partition: string,
+  ): Promise<{
     db_name: string;
     partition: string;
     doc_count: number;
     doc_del_count: number;
     sizes: { active: number; external: number };
   }> {
-    const response = await this.request(`/${db}/_partition/${encodeURIComponent(partition)}`);
+    const response = await this.request(
+      `/${db}/_partition/${encodeURIComponent(partition)}`,
+    );
     return response.json() as Promise<{
       db_name: string;
       partition: string;
@@ -580,10 +637,11 @@ export class CouchClient {
   async getPartitionDocs(
     db: string,
     partition: string,
-    options: Omit<AllDocsOptions, "startkey" | "endkey" | "keys"> = {}
+    options: Omit<AllDocsOptions, "startkey" | "endkey" | "keys"> = {},
   ): Promise<AllDocsResult> {
     const params = new URLSearchParams();
-    if (options.limit !== undefined) params.set("limit", options.limit.toString());
+    if (options.limit !== undefined)
+      params.set("limit", options.limit.toString());
     if (options.skip !== undefined) params.set("skip", options.skip.toString());
     if (options.descending) params.set("descending", "true");
     if (options.include_docs) params.set("include_docs", "true");
@@ -611,19 +669,24 @@ export class CouchClient {
       startkey?: unknown;
       endkey?: unknown;
       key?: unknown;
-    } = {}
+    } = {},
   ): Promise<ViewResult> {
     const params = new URLSearchParams();
-    if (options.key !== undefined) params.set("key", JSON.stringify(options.key));
-    if (options.startkey !== undefined) params.set("startkey", JSON.stringify(options.startkey));
-    if (options.endkey !== undefined) params.set("endkey", JSON.stringify(options.endkey));
-    if (options.limit !== undefined) params.set("limit", options.limit.toString());
+    if (options.key !== undefined)
+      params.set("key", JSON.stringify(options.key));
+    if (options.startkey !== undefined)
+      params.set("startkey", JSON.stringify(options.startkey));
+    if (options.endkey !== undefined)
+      params.set("endkey", JSON.stringify(options.endkey));
+    if (options.limit !== undefined)
+      params.set("limit", options.limit.toString());
     if (options.skip !== undefined) params.set("skip", options.skip.toString());
     if (options.descending) params.set("descending", "true");
     if (options.include_docs) params.set("include_docs", "true");
     if (options.reduce === false) params.set("reduce", "false");
     if (options.group) params.set("group", "true");
-    if (options.group_level !== undefined) params.set("group_level", options.group_level.toString());
+    if (options.group_level !== undefined)
+      params.set("group_level", options.group_level.toString());
 
     const qs = params.toString();
     const path = `/${db}/_partition/${encodeURIComponent(partition)}/_design/${ddoc}/_view/${view}${qs ? "?" + qs : ""}`;
@@ -632,10 +695,14 @@ export class CouchClient {
   }
 
   /** Run a Mango query scoped to a specific partition. */
-  async partitionFind(db: string, partition: string, query: MangoQuery): Promise<MangoResult> {
+  async partitionFind(
+    db: string,
+    partition: string,
+    query: MangoQuery,
+  ): Promise<MangoResult> {
     const response = await this.request(
       `/${db}/_partition/${encodeURIComponent(partition)}/_find`,
-      { method: "POST", body: JSON.stringify(query) }
+      { method: "POST", body: JSON.stringify(query) },
     );
     return response.json() as Promise<MangoResult>;
   }
@@ -660,12 +727,12 @@ export class CouchClient {
       highlight_pre_tag?: string;
       highlight_post_tag?: string;
       highlight_number?: number;
-    } = {}
+    } = {},
   ): Promise<NouveauSearchResult> {
     const body: Record<string, unknown> = { q: query, ...options };
     const response = await this.request(
       `/${db}/_design/${ddoc}/_nouveau/${index}`,
-      { method: "POST", body: JSON.stringify(body) }
+      { method: "POST", body: JSON.stringify(body) },
     );
     return response.json() as Promise<NouveauSearchResult>;
   }
@@ -673,40 +740,64 @@ export class CouchClient {
   // ── Scheduler (CouchDB 3.x) ───────────────────────────────────────────────
 
   /** List running replication jobs from the scheduler. */
-  async getSchedulerJobs(options: { limit?: number; skip?: number } = {}): Promise<{
+  async getSchedulerJobs(
+    options: { limit?: number; skip?: number } = {},
+  ): Promise<{
     total_rows: number;
     offset: number;
     jobs: SchedulerJob[];
   }> {
     const params = new URLSearchParams();
-    if (options.limit !== undefined) params.set("limit", options.limit.toString());
+    if (options.limit !== undefined)
+      params.set("limit", options.limit.toString());
     if (options.skip !== undefined) params.set("skip", options.skip.toString());
     const qs = params.toString();
-    const response = await this.request(`/_scheduler/jobs${qs ? "?" + qs : ""}`);
-    return response.json() as Promise<{ total_rows: number; offset: number; jobs: SchedulerJob[] }>;
+    const response = await this.request(
+      `/_scheduler/jobs${qs ? "?" + qs : ""}`,
+    );
+    return response.json() as Promise<{
+      total_rows: number;
+      offset: number;
+      jobs: SchedulerJob[];
+    }>;
   }
 
   /** List replication documents from the scheduler. */
-  async getSchedulerDocs(options: { limit?: number; skip?: number; replicator?: string } = {}): Promise<{
+  async getSchedulerDocs(
+    options: { limit?: number; skip?: number; replicator?: string } = {},
+  ): Promise<{
     total_rows: number;
     offset: number;
     docs: SchedulerDoc[];
   }> {
     const params = new URLSearchParams();
-    if (options.limit !== undefined) params.set("limit", options.limit.toString());
+    if (options.limit !== undefined)
+      params.set("limit", options.limit.toString());
     if (options.skip !== undefined) params.set("skip", options.skip.toString());
     const db = options.replicator ?? "_replicator";
     const qs = params.toString();
-    const response = await this.request(`/_scheduler/docs/${db}${qs ? "?" + qs : ""}`);
-    return response.json() as Promise<{ total_rows: number; offset: number; docs: SchedulerDoc[] }>;
+    const response = await this.request(
+      `/_scheduler/docs/${db}${qs ? "?" + qs : ""}`,
+    );
+    return response.json() as Promise<{
+      total_rows: number;
+      offset: number;
+      docs: SchedulerDoc[];
+    }>;
   }
 
   // ── Cluster / membership (CouchDB 3.x) ───────────────────────────────────
 
   /** Get the cluster membership (all_nodes / cluster_nodes). */
-  async getMembership(): Promise<{ all_nodes: string[]; cluster_nodes: string[] }> {
+  async getMembership(): Promise<{
+    all_nodes: string[];
+    cluster_nodes: string[];
+  }> {
     const response = await this.request("/_membership");
-    return response.json() as Promise<{ all_nodes: string[]; cluster_nodes: string[] }>;
+    return response.json() as Promise<{
+      all_nodes: string[];
+      cluster_nodes: string[];
+    }>;
   }
 
   /** Get cluster setup state. */
@@ -734,11 +825,15 @@ export class CouchClient {
   }
 
   /** Get bulk info for a list of databases. */
-  async getDbsInfo(keys: string[]): Promise<Array<{ key: string; info?: DatabaseInfo; error?: string }>> {
+  async getDbsInfo(
+    keys: string[],
+  ): Promise<Array<{ key: string; info?: DatabaseInfo; error?: string }>> {
     const response = await this.request("/_dbs_info", {
       method: "POST",
       body: JSON.stringify({ keys }),
     });
-    return response.json() as Promise<Array<{ key: string; info?: DatabaseInfo; error?: string }>>;
+    return response.json() as Promise<
+      Array<{ key: string; info?: DatabaseInfo; error?: string }>
+    >;
   }
 }

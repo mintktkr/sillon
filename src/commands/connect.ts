@@ -19,8 +19,7 @@ export const ConnectCommand = new Command("connect")
     }
   });
 
-ConnectCommand
-  .command("add <url>")
+ConnectCommand.command("add <url>")
   .description("Test and save a CouchDB connection")
   .option("-n, --name <name>", "Save as named connection")
   .option("--default", "Set as default connection")
@@ -37,7 +36,7 @@ ConnectCommand
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const info = await response.json() as {
+      const info = (await response.json()) as {
         version: string;
         vendor?: { name: string };
       };
@@ -67,15 +66,14 @@ ConnectCommand
     } catch (error) {
       console.error(
         pc.red(
-          `✗ Connection failed: ${error instanceof Error ? error.message : String(error)}`
-        )
+          `✗ Connection failed: ${error instanceof Error ? error.message : String(error)}`,
+        ),
       );
       process.exit(1);
     }
   });
 
-ConnectCommand
-  .command("list")
+ConnectCommand.command("list")
   .description("List saved connections")
   .option("--json", "Output as JSON")
   .action(async (options) => {
@@ -104,14 +102,15 @@ ConnectCommand
       }
     } catch (error) {
       console.error(
-        pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
       );
       process.exit(1);
     }
   });
 
-ConnectCommand
-  .command("use <name>")
+ConnectCommand.command("use <name>")
   .description("Set a saved connection as the default")
   .action(async (name: string) => {
     const config = new ConfigManager();
@@ -123,14 +122,15 @@ ConnectCommand
       console.log(pc.dim(`  ${conn?.url}`));
     } catch (error) {
       console.error(
-        pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
       );
       process.exit(1);
     }
   });
 
-ConnectCommand
-  .command("remove <name>")
+ConnectCommand.command("remove <name>")
   .alias("rm")
   .description("Remove a saved connection")
   .action(async (name: string) => {
@@ -141,7 +141,9 @@ ConnectCommand
       console.log(pc.green(`✓ Removed connection "${name}"`));
     } catch (error) {
       console.error(
-        pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
+        pc.red(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        ),
       );
       process.exit(1);
     }
