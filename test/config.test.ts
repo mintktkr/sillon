@@ -9,11 +9,9 @@ describe("ConfigManager", () => {
   let config: ConfigManager;
 
   beforeEach(async () => {
-    // Create test config dir
+    // Create isolated test config dir
     await mkdir(testDir, { recursive: true });
-    
-    // Override config path (we'll need to expose this or mock it)
-    config = new ConfigManager();
+    config = new ConfigManager(testDir);
   });
 
   afterEach(async () => {

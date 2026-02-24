@@ -5,10 +5,12 @@ import { mkdir } from "fs/promises";
 export interface ConnectionConfig {
   url: string;
   name?: string;
+  isDefault?: boolean;
 }
 
 export interface SillonConfig {
-  defaultConnection?: string;
+  defaultConnection?: string;      // raw URL default
+  defaultConnectionName?: string;  // named connection default (takes precedence)
   connections: Record<string, string>;
   editor?: string;
   output?: "auto" | "json" | "table";
@@ -19,9 +21,13 @@ export class ConfigManager {
   private configPath: string;
   private config: SillonConfig | null = null;
 
-  constructor() {
-    this.configDir = join(homedir(), ".config", "sillon");
+  constructor(configDir?: string) {
+    this.configDir = configDir ?? join(homedir(), ".config", "sillon");
     this.configPath = join(this.configDir, "config.json");
+  }
+
+  getConfigPath(): string {
+    return this.configPath;
   }
 
   async load(): Promise<SillonConfig> {
@@ -43,7 +49,7 @@ export class ConfigManager {
       editor: process.env.EDITOR || "nano",
       output: "auto",
     };
-    
+
     return this.config;
   }
 
@@ -59,25 +65,68 @@ export class ConfigManager {
     await this.save(config);
   }
 
+  async removeConnection(name: string): Promise<void> {
+    const config = await this.load();
+
+    if (!config.connections[name]) {
+      throw new Error(`No connection named "${name}"`);
+    }
+
+    delete config.connections[name];
+
+    // Clear default if it was pointing at this name
+    if (config.defaultConnectionName === name) {
+      delete config.defaultConnectionName;
+      delete config.defaultConnection;
+    }
+
+    await this.save(config);
+  }
+
+  /** Set default by named connection (stored connection must exist). */
+  async setDefaultByName(name: string): Promise<void> {
+    const config = await this.load();
+
+    if (!config.connections[name]) {
+      throw new Error(`No connection named "${name}"`);
+    }
+
+    config.defaultConnectionName = name;
+    config.defaultConnection = config.connections[name];
+    await this.save(config);
+  }
+
+  /** Set default by raw URL (no name required). */
   async setDefaultConnection(url: string): Promise<void> {
     const config = await this.load();
     config.defaultConnection = url;
+    delete config.defaultConnectionName; // raw URL takes over, clear named default
     await this.save(config);
   }
 
   async getActiveConnection(): Promise<ConnectionConfig> {
     const config = await this.load();
-    
-    if (config.defaultConnection) {
-      return { url: config.defaultConnection };
+
+    // Named default takes precedence
+    if (config.defaultConnectionName) {
+      const url = config.connections[config.defaultConnectionName];
+      if (url) {
+        return { url, name: config.defaultConnectionName, isDefault: true };
+      }
+      // Named connection was deleted — fall through
     }
-    
-    // Check for COUCHDB_URL env var
+
+    // Raw URL default
+    if (config.defaultConnection) {
+      return { url: config.defaultConnection, isDefault: true };
+    }
+
+    // COUCHDB_URL env var
     if (process.env.COUCHDB_URL) {
       return { url: process.env.COUCHDB_URL };
     }
-    
-    // Check for default local
+
+    // Auto-detect local CouchDB
     try {
       const response = await fetch("http://localhost:5984/");
       if (response.ok) {
@@ -86,21 +135,27 @@ export class ConfigManager {
     } catch {
       // Not running locally
     }
-    
+
     throw new Error(
       "No CouchDB connection configured.\n" +
-      "Run: sillon connect <url> or set COUCHDB_URL env var"
+        "Run: sillon connect <url>  or set COUCHDB_URL env var"
     );
   }
 
   async getConnection(name: string): Promise<ConnectionConfig | null> {
     const config = await this.load();
     const url = config.connections[name];
-    return url ? { url, name } : null;
+    if (!url) return null;
+    const isDefault = config.defaultConnectionName === name;
+    return { url, name, isDefault };
   }
 
   async listConnections(): Promise<ConnectionConfig[]> {
     const config = await this.load();
-    return Object.entries(config.connections).map(([name, url]) => ({ name, url }));
+    return Object.entries(config.connections).map(([name, url]) => ({
+      name,
+      url,
+      isDefault: config.defaultConnectionName === name,
+    }));
   }
 }
