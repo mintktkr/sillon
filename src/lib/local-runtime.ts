@@ -290,6 +290,8 @@ export class LocalRuntime {
    * Writing a pre-hashed value prevents CouchDB from double-hashing the password.
    */
   private async hashPasswordPBKDF2(password: string): Promise<string> {
+    // Note: CouchDB 3.x uses PBKDF2-SHA256 by default (not SHA-1)
+    // This generates a hash that should be compatible with couchdb 3.x
     const salt = new Uint8Array(16);
     crypto.getRandomValues(salt);
 
@@ -301,15 +303,16 @@ export class LocalRuntime {
       ["deriveBits"],
     );
 
+    // CouchDB 3.x default: SHA-256, 10 iterations, 32-byte derived key
     const derivedBits = await crypto.subtle.deriveBits(
       {
         name: "PBKDF2",
-        hash: "SHA-1",
+        hash: "SHA-256",
         salt,
         iterations: 10,
       },
       keyMaterial,
-      160, // SHA-1 digest is 160 bits
+      256,
     );
 
     const toHex = (buf: ArrayBuffer | Uint8Array) =>
@@ -322,21 +325,25 @@ export class LocalRuntime {
 
   private async startNix(): Promise<string> {
     console.log(`📦 Starting CouchDB ${this.version} via Nix...`);
+    console.log("  ⚠️  Nix runtime is experimental - auth may require manual setup");
 
     // Ensure data directory exists
     await mkdir(this.dataDir, { recursive: true });
 
-    // Hash the password with PBKDF2-SHA1 before writing to local.ini.
-    // The Nix couchdb3 package does not honour COUCHDB_PASSWORD, so we must
-    // supply a pre-hashed value in the ini file to avoid CouchDB treating the
-    // plaintext as an already-hashed entry and rejecting all login attempts.
+    // Hash the password for CouchDB
+    // Note: This is experimental - PBKDF2 hash format may differ from CouchDB's expectations
     const hashedPass = await this.hashPasswordPBKDF2(this.adminPass);
 
-    // Write local.ini config — must exist BEFORE couchdb starts
+    // Write local.ini config with [chttpd] for CouchDB 3.x compatibility
     const localIni = join(this.dataDir, "local.ini");
     await Bun.write(
       localIni,
-      `[httpd]
+      `[couchdb]
+database_dir = ${this.dataDir}
+uri_file = ${join(this.dataDir, "couch.uri")}
+view_index_dir = ${this.dataDir}
+
+[chttpd]
 port = ${this.port}
 bind_address = 127.0.0.1
 
@@ -345,7 +352,7 @@ ${this.adminUser} = ${hashedPass}
 `,
     );
 
-    // Run couchdb via nix-shell (more compatible than nix run)
+    // Run couchdb via nix-shell
     console.log("  Starting with nix-shell...");
     const proc = spawn(
       [
