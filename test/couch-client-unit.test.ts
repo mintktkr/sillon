@@ -72,11 +72,12 @@ afterAll(() => {
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe("CouchClient (unit)", () => {
-  const BASE = "http://admin:pass@couch.local:5984";
+  const BASE = "http://couch.local:5984";
+  const BASE_WITH_CREDS = "http://admin:pass@couch.local:5984";
   let client: CouchClient;
 
   beforeAll(() => {
-    client = new CouchClient(BASE);
+    client = new CouchClient(BASE_WITH_CREDS);
   });
 
   // ── Constructor normalizes trailing slash ─────────────────────────────────

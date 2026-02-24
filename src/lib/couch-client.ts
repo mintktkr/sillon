@@ -159,9 +159,17 @@ export interface SchedulerDoc {
 
 export class CouchClient {
   private baseUrl: string;
+  private authHeader?: string;
 
   constructor(url: string) {
-    this.baseUrl = url.replace(/\/$/, "");
+    const parsed = new URL(url);
+    this.baseUrl = `${parsed.protocol}//${parsed.host}`;
+    
+    // Extract credentials and create Basic Auth header
+    if (parsed.username || parsed.password) {
+      const creds = `${decodeURIComponent(parsed.username)}:${decodeURIComponent(parsed.password)}`;
+      this.authHeader = `Basic ${btoa(creds)}`;
+    }
   }
 
   private async request(
@@ -169,13 +177,20 @@ export class CouchClient {
     options: RequestInit = {},
   ): Promise<Response> {
     const url = `${this.baseUrl}${path}`;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...options.headers,
+    };
+    
+    // Add auth header if we have credentials
+    if (this.authHeader) {
+      headers.Authorization = this.authHeader;
+    }
+    
     const response = await fetch(url, {
       ...options,
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        ...options.headers,
-      },
+      headers,
     });
 
     if (!response.ok) {
