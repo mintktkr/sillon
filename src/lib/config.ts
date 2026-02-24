@@ -11,6 +11,7 @@ export interface ConnectionConfig {
 export interface SillonConfig {
   defaultConnection?: string;      // raw URL default
   defaultConnectionName?: string;  // named connection default (takes precedence)
+  currentDb?: string;              // last-used database (sillon db use <name>)
   connections: Record<string, string>;
   editor?: string;
   output?: "auto" | "json" | "table";
@@ -157,5 +158,18 @@ export class ConfigManager {
       url,
       isDefault: config.defaultConnectionName === name,
     }));
+  }
+
+  /** Get the last-used database (set via `sillon db use <name>`). */
+  async getCurrentDb(): Promise<string | undefined> {
+    const config = await this.load();
+    return config.currentDb;
+  }
+
+  /** Persist the current working database. */
+  async setCurrentDb(db: string): Promise<void> {
+    const config = await this.load();
+    config.currentDb = db;
+    await this.save(config);
   }
 }

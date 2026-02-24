@@ -6,6 +6,11 @@ import { ConnectCommand } from "./commands/connect.js";
 import { DbCommand } from "./commands/db.js";
 import { DocCommand } from "./commands/doc.js";
 import { ReplCommand } from "./commands/repl.js";
+import { ViewCommand } from "./commands/view.js";
+import { FindCommand, IndexCommand } from "./commands/find.js";
+import { ServerCommand } from "./commands/server.js";
+import { PartitionCommand } from "./commands/partition.js";
+import { SearchCommand } from "./commands/search.js";
 
 const program = new Command()
   .name("sillon")
@@ -17,7 +22,13 @@ program.addCommand(LocalCommand);
 program.addCommand(ConnectCommand);
 program.addCommand(DbCommand);
 program.addCommand(DocCommand);
+program.addCommand(ViewCommand);
+program.addCommand(FindCommand);
+program.addCommand(IndexCommand);
 program.addCommand(ReplCommand);
+program.addCommand(ServerCommand);
+program.addCommand(PartitionCommand);
+program.addCommand(SearchCommand);
 
 // Global error handling
 program.exitOverride();

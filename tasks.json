@@ -27,41 +27,41 @@
   {
     "id": "TASK-6",
     "description": "Iteration 3: Connection Management - Connect command",
-    "completed": false
+    "completed": true
   },
   {
     "id": "TASK-7",
     "description": "Iteration 4: Database Operations - CouchClient",
-    "completed": false
+    "completed": true
   },
   {
     "id": "TASK-8",
     "description": "Iteration 4: Database Operations - DB commands",
-    "completed": false
+    "completed": true
   },
   {
     "id": "TASK-9",
     "description": "Iteration 5: Document Operations - All doc commands",
-    "completed": false
+    "completed": true
   },
   {
     "id": "TASK-10",
     "description": "Iteration 6: Views & Queries",
-    "completed": false
+    "completed": true
   },
   {
     "id": "TASK-11",
     "description": "Iteration 7: Replication features",
-    "completed": false
+    "completed": true
   },
   {
     "id": "TASK-12",
     "description": "Iteration 8: CouchDB 3.x features",
-    "completed": false
+    "completed": true
   },
   {
     "id": "TASK-13",
     "description": "Iteration 9: Tests and CI/CD",
-    "completed": false
+    "completed": true
   }
 ]
