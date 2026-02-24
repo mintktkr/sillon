@@ -177,15 +177,13 @@ export class CouchClient {
     options: RequestInit = {},
   ): Promise<Response> {
     const url = `${this.baseUrl}${path}`;
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...options.headers,
-    };
+    const headers = new Headers(options.headers);
+    headers.set("Content-Type", "application/json");
+    headers.set("Accept", "application/json");
     
     // Add auth header if we have credentials
     if (this.authHeader) {
-      headers.Authorization = this.authHeader;
+      headers.set("Authorization", this.authHeader);
     }
     
     const response = await fetch(url, {
