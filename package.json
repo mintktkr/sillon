@@ -1,5 +1,5 @@
 {
-  "name": "sillon",
+  "name": "@mintktkr/sillon",
   "version": "0.1.0",
   "description": "🛋️ Modern CouchDB CLI - interactive, fuzzy-finding, visual replication",
   "module": "src/index.ts",
