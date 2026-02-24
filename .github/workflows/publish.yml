@@ -1,0 +1,47 @@
+name: Publish to NPM
+
+on:
+  release:
+    types: [created]
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run typecheck
+        run: bun run typecheck
+
+      - name: Run lint
+        run: bun run lint
+
+      - name: Run tests
+        run: bun test
+        env:
+          COUCHDB_URL: http://admin:password@localhost:5984
+
+      - name: Build
+        run: bun run build
+
+      - name: Setup Node.js for publishing
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish to NPM
+        run: npm publish --access=public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
