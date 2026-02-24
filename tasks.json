@@ -1,0 +1,15 @@
+[
+  { "id": "TASK-1", "description": "Iteration 1: Core Infrastructure", "completed": true },
+  { "id": "TASK-2", "description": "Iteration 2: Local Development - LocalRuntime class", "completed": false },
+  { "id": "TASK-3", "description": "Iteration 2: Local Development - Podman support", "completed": false },
+  { "id": "TASK-4", "description": "Iteration 2: Local Development - Commands (up/down/status)", "completed": false },
+  { "id": "TASK-5", "description": "Iteration 3: Connection Management - ConfigManager", "completed": false },
+  { "id": "TASK-6", "description": "Iteration 3: Connection Management - Connect command", "completed": false },
+  { "id": "TASK-7", "description": "Iteration 4: Database Operations - CouchClient", "completed": false },
+  { "id": "TASK-8", "description": "Iteration 4: Database Operations - DB commands", "completed": false },
+  { "id": "TASK-9", "description": "Iteration 5: Document Operations - All doc commands", "completed": false },
+  { "id": "TASK-10", "description": "Iteration 6: Views & Queries", "completed": false },
+  { "id": "TASK-11", "description": "Iteration 7: Replication features", "completed": false },
+  { "id": "TASK-12", "description": "Iteration 8: CouchDB 3.x features", "completed": false },
+  { "id": "TASK-13", "description": "Iteration 9: Tests and CI/CD", "completed": false }
+]

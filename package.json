@@ -1,0 +1,54 @@
+{
+  "name": "sillon",
+  "version": "0.1.0",
+  "description": "🛋️ Modern CouchDB CLI - interactive, fuzzy-finding, visual replication",
+  "module": "src/index.ts",
+  "type": "module",
+  "bin": {
+    "sillon": "./dist/index.js",
+    "sll": "./dist/index.js"
+  },
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "build": "bun build src/index.ts --outfile=dist/index.js --target=node --minify",
+    "build:debug": "bun build src/index.ts --outfile=dist/index.js --target=node",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "lint": "biome check .",
+    "lint:fix": "biome check . --write",
+    "format": "biome format . --write",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "couchdb",
+    "cli",
+    "database",
+    "nosql",
+    "pouchdb",
+    "fuzzy",
+    "interactive",
+    "bun"
+  ],
+  "author": "Marco Torres <mint@muu.space>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mintktkr/sillon.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mintktkr/sillon/issues"
+  },
+  "homepage": "https://github.com/mintktkr/sillon#readme",
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@types/bun": "latest",
+    "typescript": "^5.9.0"
+  },
+  "dependencies": {
+    "commander": "^13.0.0",
+    "picocolors": "^1.1.0"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
