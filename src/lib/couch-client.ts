@@ -75,13 +75,13 @@ export class CouchClient {
     vendor?: { name: string; version?: string };
   }> {
     const response = await this.request("/");
-    return response.json();
+    return response.json() as Promise<{ couchdb: string; version: string; vendor?: { name: string; version?: string } }>;
   }
 
   // Database operations
   async listDatabases(): Promise<string[]> {
     const response = await this.request("/_all_dbs");
-    return response.json();
+    return response.json() as Promise<string[]>;
   }
 
   async createDatabase(
@@ -90,23 +90,23 @@ export class CouchClient {
   ): Promise<{ ok: boolean }> {
     const qs = options.partitioned ? "?partitioned=true" : "";
     const response = await this.request(`/${name}${qs}`, { method: "PUT" });
-    return response.json();
+    return response.json() as Promise<{ ok: boolean }>;
   }
 
   async deleteDatabase(name: string): Promise<{ ok: boolean }> {
     const response = await this.request(`/${name}`, { method: "DELETE" });
-    return response.json();
+    return response.json() as Promise<{ ok: boolean }>;
   }
 
   async getDatabaseInfo(name: string): Promise<DatabaseInfo> {
     const response = await this.request(`/${name}`);
-    return response.json();
+    return response.json() as Promise<DatabaseInfo>;
   }
 
   // Document operations
   async getDocument(db: string, id: string): Promise<Document> {
     const response = await this.request(`/${db}/${encodeURIComponent(id)}`);
-    return response.json();
+    return response.json() as Promise<Document>;
   }
 
   async putDocument(
@@ -118,7 +118,7 @@ export class CouchClient {
       method: "PUT",
       body: JSON.stringify(doc),
     });
-    return response.json();
+    return response.json() as Promise<{ ok: boolean; id: string; rev: string }>;
   }
 
   async deleteDocument(
@@ -130,7 +130,7 @@ export class CouchClient {
       `/${db}/${encodeURIComponent(id)}?rev=${encodeURIComponent(rev)}`,
       { method: "DELETE" }
     );
-    return response.json();
+    return response.json() as Promise<{ ok: boolean; id: string; rev: string }>;
   }
 
   // View operations
@@ -188,7 +188,7 @@ export class CouchClient {
     const path = `/${db}/_design/${ddoc}/_view/${view}${qs ? "?" + qs : ""}`;
     
     const response = await this.request(path);
-    return response.json();
+    return response.json() as Promise<ViewResult>;
   }
 
   // Replication
@@ -216,12 +216,12 @@ export class CouchClient {
       body: JSON.stringify(body),
     });
 
-    return response.json();
+    return response.json() as Promise<{ ok: boolean; session_id?: string; source_last_seq?: number }>;
   }
 
   // Active tasks
   async getActiveTasks(): Promise<unknown[]> {
     const response = await this.request("/_active_tasks");
-    return response.json();
+    return response.json() as Promise<unknown[]>;
   }
 }

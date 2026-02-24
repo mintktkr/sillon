@@ -25,12 +25,13 @@ program.exitOverride();
 try {
   await program.parseAsync();
 } catch (error) {
-  if (error.code === "commander.help") {
+  const err = error as { code?: string; message?: string };
+  if (err.code === "commander.help") {
     process.exit(0);
   }
-  if (error.code === "commander.version") {
+  if (err.code === "commander.version") {
     process.exit(0);
   }
-  console.error(pc.red(`Error: ${error.message}`));
+  console.error(pc.red(`Error: ${err.message ?? String(error)}`));
   process.exit(1);
 }

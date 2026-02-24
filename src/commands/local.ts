@@ -29,7 +29,7 @@ LocalCommand
       console.log(pc.dim(`  URL: ${url}`));
       console.log(pc.dim(`  Admin: ${parentOpts.admin} / ${parentOpts.password}`));
     } catch (error) {
-      console.error(pc.red(`Failed to start: ${error.message}`));
+      console.error(pc.red(`Failed to start: ${error instanceof Error ? error.message : String(error)}`));
       process.exit(1);
     }
   });
@@ -45,7 +45,7 @@ LocalCommand
       await runtime.stop();
       console.log(pc.green("✓ CouchDB stopped"));
     } catch (error) {
-      console.error(pc.red(`Failed to stop: ${error.message}`));
+      console.error(pc.red(`Failed to stop: ${error instanceof Error ? error.message : String(error)}`));
       process.exit(1);
     }
   });

@@ -29,7 +29,7 @@ DbCommand
       console.log(pc.dim(`\nTotal: ${dbs.length} databases`));
       
     } catch (error) {
-      console.error(pc.red(`Error: ${error.message}`));
+      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
       process.exit(1);
     }
   });
@@ -50,7 +50,7 @@ DbCommand
         console.log(pc.dim("  (partitioned)"));
       }
     } catch (error) {
-      console.error(pc.red(`Error: ${error.message}`));
+      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
       process.exit(1);
     }
   });
@@ -74,7 +74,7 @@ DbCommand
       await client.deleteDatabase(name);
       console.log(pc.green(`✓ Deleted database "${name}"`));
     } catch (error) {
-      console.error(pc.red(`Error: ${error.message}`));
+      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
       process.exit(1);
     }
   });
@@ -112,7 +112,7 @@ DbCommand
       }
       
     } catch (error) {
-      console.error(pc.red(`Error: ${error.message}`));
+      console.error(pc.red(`Error: ${error instanceof Error ? error.message : String(error)}`));
       process.exit(1);
     }
   });

@@ -20,7 +20,7 @@ export const ConnectCommand = new Command("connect")
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      const info = await response.json();
+      const info = await response.json() as { version: string; vendor?: { name: string } };
       
       console.log(pc.green(`✓ Connected to CouchDB ${info.version}`));
       console.log(pc.dim(`  Vendor: ${info.vendor?.name || "Apache"}`));
@@ -37,7 +37,7 @@ export const ConnectCommand = new Command("connect")
       }
       
     } catch (error) {
-      console.error(pc.red(`✗ Connection failed: ${error.message}`));
+      console.error(pc.red(`✗ Connection failed: ${error instanceof Error ? error.message : String(error)}`));
       process.exit(1);
     }
   });

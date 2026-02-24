@@ -27,35 +27,32 @@ export class LocalRuntime {
   private pidFile: string;
 
   constructor(options: LocalRuntimeOptions = {}) {
-    this.version = options.version || "3.3.3";
-    this.port = options.port || 5984;
-    this.adminUser = options.adminUser || "admin";
-    this.adminPass = options.adminPass || "password";
+    this.version = options.version ?? "3.3.3";
+    this.port = options.port ?? 5984;
+    this.adminUser = options.adminUser ?? "admin";
+    this.adminPass = options.adminPass ?? "password";
     this.dataDir = join(homedir(), ".local", "share", "sillon", "couchdb", this.version);
     this.pidFile = join(homedir(), ".local", "share", "sillon", "couchdb.pid");
   }
 
   async start(): Promise<string> {
-    // Check if already running
     const current = await this.status();
     if (current.running) {
       throw new Error(`CouchDB already running at ${current.url}`);
     }
 
-    // Ensure data directory exists
     await mkdir(this.dataDir, { recursive: true });
 
-    // Detect best runtime method
     const method = await this.detectRuntime();
-    
-    switch (method) {
-      case "podman":
-        return this.startPodman();
-      case "mise":
-        return this.startMise();
-      default:
-        return this.startBinary();
-    }
+
+    if (method === "podman") return this.startPodman();
+    if (method === "mise") return this.startMise();
+
+    throw new Error(
+      "No supported runtime found. Please install Podman or Mise:\n" +
+      "  Podman: https://podman.io/getting-started/installation\n" +
+      "  Mise:   https://mise.jdx.dev/getting-started.html"
+    );
   }
 
   async stop(): Promise<void> {
@@ -64,20 +61,19 @@ export class LocalRuntime {
     }
 
     const pid = parseInt(await Bun.file(this.pidFile).text());
-    
+
     try {
       process.kill(pid, "SIGTERM");
-      // Wait for shutdown
       await new Promise((resolve) => setTimeout(resolve, 2000));
-      
-      // Force kill if still running
+
+      // Force kill if still alive
       try {
-        process.kill(pid, 0); // Check if still exists
+        process.kill(pid, 0);
         process.kill(pid, "SIGKILL");
       } catch {
-        // Already stopped
+        // Already gone
       }
-      
+
       await Bun.file(this.pidFile).delete();
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
@@ -92,8 +88,8 @@ export class LocalRuntime {
 
     try {
       const pid = parseInt(await Bun.file(this.pidFile).text());
-      process.kill(pid, 0); // Check if process exists
-      
+      process.kill(pid, 0); // Throws if process doesn't exist
+
       return {
         running: true,
         url: `http://${this.adminUser}:${this.adminPass}@localhost:${this.port}`,
@@ -101,44 +97,35 @@ export class LocalRuntime {
         version: this.version,
       };
     } catch {
-      // PID file exists but process is dead
-      try {
-        await Bun.file(this.pidFile).delete();
-      } catch {}
+      // Stale PID file — clean it up
+      try { await Bun.file(this.pidFile).delete(); } catch { /* ignore */ }
       return { running: false };
     }
   }
 
   private async detectRuntime(): Promise<"podman" | "mise" | "binary"> {
-    // Check for podman
+    // Prefer podman — no extra toolchain needed
     try {
-      const proc = Bun.spawn(["which", "podman"]);
+      const proc = Bun.spawn(["which", "podman"], { stdout: "pipe", stderr: "pipe" });
       await proc.exited;
       if (proc.exitCode === 0) return "podman";
-    } catch {}
+    } catch { /* not available */ }
 
-    // Check for mise
+    // Fall back to mise
     try {
-      const proc = Bun.spawn(["which", "mise"]);
+      const proc = Bun.spawn(["which", "mise"], { stdout: "pipe", stderr: "pipe" });
       await proc.exited;
-      if (proc.exitCode === 0) {
-        // Check if mise has couchdb
-        const list = Bun.spawn(["mise", "list", "couchdb"]);
-        await list.exited;
-        if (list.exitCode === 0) return "mise";
-      }
-    } catch {}
+      if (proc.exitCode === 0) return "mise";
+    } catch { /* not available */ }
 
     return "binary";
   }
 
   private async startPodman(): Promise<string> {
     const containerName = "sillon-couchdb";
-    
-    // Check if container exists and remove it
-    try {
-      await $`podman rm -f ${containerName}`.quiet();
-    } catch {}
+
+    // Remove any existing container with the same name
+    try { await $`podman rm -f ${containerName}`.quiet(); } catch { /* ignore */ }
 
     const proc = spawn([
       "podman", "run", "-d",
@@ -148,69 +135,36 @@ export class LocalRuntime {
       "-e", `COUCHDB_PASSWORD=${this.adminPass}`,
       "-v", `${this.dataDir}:/opt/couchdb/data`,
       `docker.io/apache/couchdb:${this.version}`,
-    ], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+    ], { stdout: "pipe", stderr: "pipe" });
 
     const exitCode = await proc.exited;
-    
     if (exitCode !== 0) {
       const stderr = await new Response(proc.stderr).text();
-      throw new Error(`Podman failed: ${stderr}`);
+      throw new Error(`podman failed: ${stderr.trim()}`);
     }
 
-    // Get container PID
-    const pidProc = await $`podman inspect -f '{{.State.Pid}}' ${containerName}`.text();
-    const pid = parseInt(pidProc.trim());
-    
+    // Record the container's host PID for status/stop tracking
+    const pidText = await $`podman inspect -f '{{.State.Pid}}' ${containerName}`.text();
+    const pid = parseInt(pidText.trim());
     await Bun.write(this.pidFile, pid.toString());
-    
-    // Wait for CouchDB to be ready
+
     await this.waitForReady();
-    
+
     return `http://${this.adminUser}:${this.adminPass}@localhost:${this.port}`;
   }
 
   private async startMise(): Promise<string> {
-    // Install couchdb if not present
+    // Install the requested version if not already present
     await $`mise install couchdb@${this.version}`.quiet();
-    
-    // Get couchdb binary path
-    const binPath = await $`mise which couchdb`.text();
-    
-    const proc = spawn([binPath.trim()], {
-      env: {
-        ...process.env,
-        COUCHDB_HTTPD_PORT: this.port.toString(),
-        COUCHDB_ADMINS: `${this.adminUser}=${this.adminPass}`,
-      },
-      cwd: this.dataDir,
-    });
 
-    // Write PID file
-    await Bun.write(this.pidFile, proc.pid.toString());
-    
-    // Wait for ready
-    await this.waitForReady();
-    
-    return `http://${this.adminUser}:${this.adminPass}@localhost:${this.port}`;
-  }
+    // Resolve the binary path for this exact version
+    const binPath = (await $`mise which --version ${this.version} couchdb`.text()).trim();
 
-  private async startBinary(): Promise<string> {
-    const binaryDir = join(this.dataDir, "apache-couchdb");
-    const binPath = join(binaryDir, "bin", "couchdb");
-
-    // Download if not exists
-    if (!existsSync(binPath)) {
-      await this.downloadCouchDB(binaryDir);
-    }
-
-    // Create local config
+    // Build a minimal ini config so couchdb uses our port and admin
     const localIni = join(this.dataDir, "local.ini");
     await Bun.write(localIni, `[httpd]
 port = ${this.port}
-bind_address = 0.0.0.0
+bind_address = 127.0.0.1
 
 [admins]
 ${this.adminUser} = ${this.adminPass}
@@ -218,45 +172,31 @@ ${this.adminUser} = ${this.adminPass}
 
     const proc = spawn([binPath, "-a", localIni], {
       cwd: this.dataDir,
+      stdout: "pipe",
+      stderr: "pipe",
     });
+
+    // Detach so the parent process doesn't wait on CouchDB
+    proc.unref();
 
     await Bun.write(this.pidFile, proc.pid.toString());
     await this.waitForReady();
-    
-    return `http://${this.adminUser}:${this.adminPass}@localhost:${this.port}`;
-  }
 
-  private async downloadCouchDB(targetDir: string): Promise<void> {
-    console.log(`Downloading CouchDB ${this.version}...`);
-    
-    const platform = process.platform === "darwin" ? "macos" : "unix";
-    const url = `https://dlcdn.apache.org/couchdb/source/${this.version}/apache-couchdb-${this.version}.tar.gz`;
-    
-    // For now, throw with instructions - downloading and building from source
-    // is complex. Better to use podman or mise.
-    throw new Error(
-      `Binary not available. Please install Podman or Mise:\n` +
-      `  Podman: https://podman.io/getting-started/installation\n` +
-      `  Mise:   https://mise.jdx.dev/getting-started.html`
-    );
+    return `http://${this.adminUser}:${this.adminPass}@localhost:${this.port}`;
   }
 
   private async waitForReady(): Promise<void> {
     const url = `http://localhost:${this.port}/_up`;
     const maxAttempts = 30;
-    
+
     for (let i = 0; i < maxAttempts; i++) {
       try {
         const resp = await fetch(url);
-        if (resp.status === 200) {
-          return;
-        }
-      } catch {
-        // Not ready yet
-      }
+        if (resp.status === 200) return;
+      } catch { /* not ready yet */ }
       await new Promise((r) => setTimeout(r, 1000));
     }
-    
-    throw new Error("Timeout waiting for CouchDB to start");
+
+    throw new Error(`Timeout: CouchDB did not become ready after ${maxAttempts}s`);
   }
 }
