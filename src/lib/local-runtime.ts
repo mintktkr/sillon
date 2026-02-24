@@ -282,13 +282,57 @@ export class LocalRuntime {
     return `http://${this.adminUser}:${this.adminPass}@localhost:${this.port}`;
   }
 
+  /**
+   * Hash a plaintext password using PBKDF2-SHA1 in the format CouchDB expects:
+   *   -pbkdf2-<hex(derivedKey)>,<hex(salt)>,10
+   *
+   * CouchDB requires PBKDF2-SHA1 with 10 iterations and a 16-byte salt.
+   * Writing a pre-hashed value prevents CouchDB from double-hashing the password.
+   */
+  private async hashPasswordPBKDF2(password: string): Promise<string> {
+    const salt = new Uint8Array(16);
+    crypto.getRandomValues(salt);
+
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(password),
+      "PBKDF2",
+      false,
+      ["deriveBits"],
+    );
+
+    const derivedBits = await crypto.subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        hash: "SHA-1",
+        salt,
+        iterations: 10,
+      },
+      keyMaterial,
+      160, // SHA-1 digest is 160 bits
+    );
+
+    const toHex = (buf: ArrayBuffer | Uint8Array) =>
+      Array.from(buf instanceof Uint8Array ? buf : new Uint8Array(buf))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+
+    return `-pbkdf2-${toHex(derivedBits)},${toHex(salt)},10`;
+  }
+
   private async startNix(): Promise<string> {
     console.log(`📦 Starting CouchDB ${this.version} via Nix...`);
 
     // Ensure data directory exists
     await mkdir(this.dataDir, { recursive: true });
 
-    // Write local.ini config
+    // Hash the password with PBKDF2-SHA1 before writing to local.ini.
+    // The Nix couchdb3 package does not honour COUCHDB_PASSWORD, so we must
+    // supply a pre-hashed value in the ini file to avoid CouchDB treating the
+    // plaintext as an already-hashed entry and rejecting all login attempts.
+    const hashedPass = await this.hashPasswordPBKDF2(this.adminPass);
+
+    // Write local.ini config — must exist BEFORE couchdb starts
     const localIni = join(this.dataDir, "local.ini");
     await Bun.write(
       localIni,
@@ -297,7 +341,7 @@ port = ${this.port}
 bind_address = 127.0.0.1
 
 [admins]
-${this.adminUser} = ${this.adminPass}
+${this.adminUser} = ${hashedPass}
 `,
     );
 
