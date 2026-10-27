@@ -1,6 +1,6 @@
-import { homedir } from "os";
-import { join } from "path";
-import { mkdir } from "fs/promises";
+import { mkdir } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 export interface ConnectionConfig {
   url: string;
@@ -37,8 +37,9 @@ export class ConfigManager {
     try {
       const file = Bun.file(this.configPath);
       if (await file.exists()) {
-        this.config = await file.json();
-        return this.config!;
+        const loaded: SillonConfig = await file.json();
+        this.config = loaded;
+        return loaded;
       }
     } catch {
       // File doesn't exist or is invalid
@@ -77,8 +78,8 @@ export class ConfigManager {
 
     // Clear default if it was pointing at this name
     if (config.defaultConnectionName === name) {
-      delete config.defaultConnectionName;
-      delete config.defaultConnection;
+      config.defaultConnectionName = undefined;
+      config.defaultConnection = undefined;
     }
 
     await this.save(config);
@@ -101,7 +102,7 @@ export class ConfigManager {
   async setDefaultConnection(url: string): Promise<void> {
     const config = await this.load();
     config.defaultConnection = url;
-    delete config.defaultConnectionName; // raw URL takes over, clear named default
+    config.defaultConnectionName = undefined; // raw URL takes over, clear named default
     await this.save(config);
   }
 

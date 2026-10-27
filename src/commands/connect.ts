@@ -97,7 +97,9 @@ ConnectCommand.command("list")
       for (const conn of connections) {
         const marker = conn.isDefault ? pc.green("●") : pc.dim("○");
         const defaultTag = conn.isDefault ? pc.dim(" (default)") : "";
-        console.log(`  ${marker} ${pc.bold(conn.name!)}${defaultTag}`);
+        console.log(
+          `  ${marker} ${pc.bold(conn.name ?? "(unnamed)")}${defaultTag}`,
+        );
         console.log(pc.dim(`      ${conn.url}`));
       }
     } catch (error) {

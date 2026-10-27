@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { homedir } from "os";
-import { join } from "path";
-import { mkdir, rm } from "fs/promises";
+import { mkdir, rm } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { ConfigManager } from "../src/lib/config";
 
 describe("ConfigManager", () => {
@@ -40,7 +40,7 @@ describe("ConfigManager", () => {
   it("should save and retrieve a connection", async () => {
     await config.saveConnection("prod", "http://localhost:5984");
     const cfg = await config.load();
-    expect(cfg.connections["prod"]).toBe("http://localhost:5984");
+    expect(cfg.connections.prod).toBe("http://localhost:5984");
   });
 
   it("should save multiple connections", async () => {
@@ -183,7 +183,7 @@ describe("ConfigManager", () => {
       const active = await config.getActiveConnection();
       expect(active.url).toBe("http://env-couch:5984");
     } finally {
-      if (original === undefined) delete process.env.COUCHDB_URL;
+      if (original === undefined) process.env.COUCHDB_URL = undefined;
       else process.env.COUCHDB_URL = original;
     }
   });

@@ -243,26 +243,25 @@ ReplCommand.command("status")
       }
 
       for (const task of tasks) {
-        const src = String(task["source"] ?? "?");
-        const tgt = String(task["target"] ?? "?");
-        const progress =
-          task["progress"] !== undefined ? `${task["progress"]}%` : "";
+        const src = String(task.source ?? "?");
+        const tgt = String(task.target ?? "?");
+        const progress = task.progress !== undefined ? `${task.progress}%` : "";
         const written =
-          task["docs_written"] !== undefined
-            ? ` written: ${task["docs_written"]}`
+          task.docs_written !== undefined
+            ? ` written: ${task.docs_written}`
             : "";
         const read =
-          task["docs_read"] !== undefined ? ` read: ${task["docs_read"]}` : "";
+          task.docs_read !== undefined ? ` read: ${task.docs_read}` : "";
 
         console.log(`\n  ${pc.blue("▸")} ${pc.dim("source:")} ${src}`);
         console.log(`    ${pc.dim("target:")} ${tgt}`);
         if (progress) console.log(`    ${pc.dim("progress:")} ${progress}`);
         if (written || read)
           console.log(`    ${pc.dim("docs:")}    ${read}${written}`);
-        if (task["continuous"])
+        if (task.continuous)
           console.log(`    ${pc.dim("mode:")}    continuous`);
-        if (task["replication_id"])
-          console.log(`    ${pc.dim("rep id:")}  ${task["replication_id"]}`);
+        if (task.replication_id)
+          console.log(`    ${pc.dim("rep id:")}  ${task.replication_id}`);
       }
     } catch (error) {
       console.error(

@@ -234,7 +234,7 @@ ViewCommand.command("query <ddoc> <view> [db]")
               )
               .join(", ");
             console.log(
-              `    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`,
+              `    ${pc.dim(`{ ${preview}${keys.length > 4 ? ", …" : ""} }`)}`,
             );
           }
         }
@@ -244,7 +244,7 @@ ViewCommand.command("query <ddoc> <view> [db]")
         result.total_rows !== undefined &&
         result.rows.length < result.total_rows
       ) {
-        console.log(pc.dim(`\n  Use --limit / --skip to paginate.`));
+        console.log(pc.dim("\n  Use --limit / --skip to paginate."));
       }
     } catch (error) {
       console.error(

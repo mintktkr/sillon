@@ -12,7 +12,7 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
 /** Read a single line from stdin. Returns trimmed string. */
@@ -105,7 +105,7 @@ DbCommand.command("delete <name>")
           `⚠️  This will permanently delete "${name}" and all its documents.`,
         ),
       );
-      const answer = await prompt(`Type the database name to confirm: `);
+      const answer = await prompt("Type the database name to confirm: ");
       if (answer !== name) {
         console.log(pc.dim("Aborted."));
         return;
@@ -131,12 +131,9 @@ DbCommand.command("delete <name>")
 DbCommand.command("info [name]")
   .description("Show database information")
   .option("--json", "Output as JSON")
-  .action(async (name?: string, options?) => {
+  .action(async (nameArg?: string, options?) => {
     // Fall back to current db if no name given
-    if (!name) {
-      const config = new ConfigManager();
-      name = await config.getCurrentDb();
-    }
+    const name = nameArg || (await new ConfigManager().getCurrentDb());
 
     if (!name) {
       console.log(pc.yellow("Usage: sillon db info <name>"));

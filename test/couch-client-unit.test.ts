@@ -376,7 +376,7 @@ describe("CouchClient (unit)", () => {
       string,
       string[]
     >;
-    expect(body["doc1"]).toEqual(["1-abc"]);
+    expect(body.doc1).toEqual(["1-abc"]);
   });
 
   // ── getPartitionInfo ──────────────────────────────────────────────────────

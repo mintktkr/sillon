@@ -127,7 +127,7 @@ describe("CouchClient (integration)", () => {
 
   itSkip("deleteDocument removes the document", async () => {
     const put = await client.putDocument(TEST_DB, { _id: "delete-me", x: 1 });
-    await client.deleteDocument(TEST_DB, "delete-me", put.rev!);
+    await client.deleteDocument(TEST_DB, "delete-me", put.rev);
     await expect(client.getDocument(TEST_DB, "delete-me")).rejects.toThrow();
   });
 
@@ -162,11 +162,14 @@ describe("CouchClient (integration)", () => {
     const created = await client.bulkDocs(TEST_DB, docsToCreate);
 
     // Then delete
-    const toDelete = created.map((r) => ({
-      _id: r.id,
-      _rev: r.rev!,
-      _deleted: true as const,
-    }));
+    const toDelete = created.map((r) => {
+      if (!r.rev) throw new Error(`bulk create failed for ${r.id}: ${r.error}`);
+      return {
+        _id: r.id,
+        _rev: r.rev,
+        _deleted: true as const,
+      };
+    });
     const deleted = await client.bulkDocs(TEST_DB, toDelete);
     expect(deleted).toHaveLength(2);
     for (const r of deleted) {
@@ -355,7 +358,7 @@ describe("CouchClient (integration)", () => {
   itSkip("purge removes specific revisions", async () => {
     const put = await client.putDocument(TEST_DB, { _id: "purge-me", v: 1 });
     // Delete the doc first so we can purge it
-    await client.deleteDocument(TEST_DB, "purge-me", put.rev!);
+    await client.deleteDocument(TEST_DB, "purge-me", put.rev);
 
     const deleted = await client
       .getDocument(TEST_DB, "purge-me")

@@ -41,7 +41,7 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
 // ── partition info ────────────────────────────────────────────────────────────
@@ -134,7 +134,7 @@ PartitionCommand.command("list <partition> [db]")
               )
               .join(", ");
             console.log(
-              `    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`,
+              `    ${pc.dim(`{ ${preview}${keys.length > 4 ? ", …" : ""} }`)}`,
             );
           }
         }
@@ -247,7 +247,7 @@ PartitionCommand.command("find <partition> [db]")
               .map((k) => `${k}: ${JSON.stringify(doc[k]).slice(0, 24)}`)
               .join(", ");
             console.log(
-              `    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`,
+              `    ${pc.dim(`{ ${preview}${keys.length > 4 ? ", …" : ""} }`)}`,
             );
           }
         }

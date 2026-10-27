@@ -141,7 +141,7 @@ export const FindCommand = new Command("find")
               .map((k) => `${k}: ${JSON.stringify(doc[k]).slice(0, 24)}`)
               .join(", ");
             console.log(
-              `    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`,
+              `    ${pc.dim(`{ ${preview}${keys.length > 4 ? ", …" : ""} }`)}`,
             );
           }
         }
