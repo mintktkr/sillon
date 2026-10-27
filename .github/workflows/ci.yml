@@ -60,6 +60,14 @@ jobs:
             sleep 1
           done
 
+      # The couchdb image starts unconfigured, without the system databases
+      # (_users, _replicator), so single-node setup has to create them.
+      - name: Create CouchDB system databases
+        run: |
+          for db in _users _replicator; do
+            curl -sf -X PUT http://admin:password@localhost:5984/$db || curl -sf http://admin:password@localhost:5984/$db
+          done
+
       - name: Run tests
         env:
           COUCHDB_URL: http://admin:password@localhost:5984

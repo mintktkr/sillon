@@ -322,8 +322,10 @@ describe("CouchClient (integration)", () => {
 
     await client.deleteIndex(TEST_DB, "color-index-ddoc", "color-index");
     const { indexes } = await client.listIndexes(TEST_DB);
-    const names = indexes.map((i) => i.name);
-    expect(names).not.toContain("color-index");
+    // "color-index" may also exist in the auto-named ddoc from the previous
+    // test, so check that this ddoc's index is gone, not the name
+    const ddocs = indexes.map((i) => i.ddoc);
+    expect(ddocs).not.toContain("_design/color-index-ddoc");
   });
 
   // ── Compact / cleanup ────────────────────────────────────────────────────
@@ -371,7 +373,10 @@ describe("CouchClient (integration)", () => {
     if (!row) return; // already gone
 
     const result = await client.purge(TEST_DB, { "purge-me": [row.value.rev] });
-    expect(typeof result.purge_seq).toBe("string");
+    // CouchDB 3.x (clustered) returns purge_seq: null; 2.x returned a string
+    expect(
+      result.purge_seq === null || typeof result.purge_seq === "string",
+    ).toBe(true);
   });
 
   // ── getDbsInfo ───────────────────────────────────────────────────────────

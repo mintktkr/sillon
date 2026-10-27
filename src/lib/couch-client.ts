@@ -592,14 +592,15 @@ export class CouchClient {
   async purge(
     db: string,
     docsRevs: Record<string, string[]>,
-  ): Promise<{ purged: Record<string, string[]>; purge_seq: string }> {
+  ): Promise<{ purged: Record<string, string[]>; purge_seq: string | null }> {
     const response = await this.request(`/${db}/_purge`, {
       method: "POST",
       body: JSON.stringify(docsRevs),
     });
     return response.json() as Promise<{
       purged: Record<string, string[]>;
-      purge_seq: string;
+      // CouchDB 3.x clustered databases return null here
+      purge_seq: string | null;
     }>;
   }
 
