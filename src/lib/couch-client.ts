@@ -164,7 +164,7 @@ export class CouchClient {
   constructor(url: string) {
     const parsed = new URL(url);
     this.baseUrl = `${parsed.protocol}//${parsed.host}`;
-    
+
     // Extract credentials and create Basic Auth header
     if (parsed.username || parsed.password) {
       const creds = `${decodeURIComponent(parsed.username)}:${decodeURIComponent(parsed.password)}`;
@@ -180,12 +180,12 @@ export class CouchClient {
     const headers = new Headers(options.headers);
     headers.set("Content-Type", "application/json");
     headers.set("Accept", "application/json");
-    
+
     // Add auth header if we have credentials
     if (this.authHeader) {
       headers.set("Authorization", this.authHeader);
     }
-    
+
     const response = await fetch(url, {
       ...options,
       headers,
@@ -292,7 +292,7 @@ export class CouchClient {
       if (queryOptions.include_docs) params.set("include_docs", "true");
 
       const qs = params.toString();
-      const path = `/${db}/_all_docs${qs ? "?" + qs : ""}`;
+      const path = `/${db}/_all_docs${qs ? `?${qs}` : ""}`;
       const response = await this.request(path, {
         method: "POST",
         body: JSON.stringify({ keys }),
@@ -318,7 +318,7 @@ export class CouchClient {
 
     const qs = params.toString();
     const response = await this.request(
-      `/${db}/_all_docs${qs ? "?" + qs : ""}`,
+      `/${db}/_all_docs${qs ? `?${qs}` : ""}`,
     );
     return response.json() as Promise<AllDocsResult>;
   }
@@ -436,7 +436,7 @@ export class CouchClient {
       params.set("group_level", options.group_level.toString());
 
     const qs = params.toString();
-    const path = `/${db}/_design/${ddoc}/_view/${view}${qs ? "?" + qs : ""}`;
+    const path = `/${db}/_design/${ddoc}/_view/${view}${qs ? `?${qs}` : ""}`;
 
     const response = await this.request(path);
     return response.json() as Promise<ViewResult>;
@@ -568,7 +568,7 @@ export class CouchClient {
     const tasks = (await this.getActiveTasks()) as Array<
       Record<string, unknown>
     >;
-    return tasks.filter((t) => t["type"] === "replication");
+    return tasks.filter((t) => t.type === "replication");
   }
 
   /** List conflicted documents in a database. */
@@ -592,14 +592,15 @@ export class CouchClient {
   async purge(
     db: string,
     docsRevs: Record<string, string[]>,
-  ): Promise<{ purged: Record<string, string[]>; purge_seq: string }> {
+  ): Promise<{ purged: Record<string, string[]>; purge_seq: string | null }> {
     const response = await this.request(`/${db}/_purge`, {
       method: "POST",
       body: JSON.stringify(docsRevs),
     });
     return response.json() as Promise<{
       purged: Record<string, string[]>;
-      purge_seq: string;
+      // CouchDB 3.x clustered databases return null here
+      purge_seq: string | null;
     }>;
   }
 
@@ -660,7 +661,7 @@ export class CouchClient {
     if (options.include_docs) params.set("include_docs", "true");
 
     const qs = params.toString();
-    const path = `/${db}/_partition/${encodeURIComponent(partition)}/_all_docs${qs ? "?" + qs : ""}`;
+    const path = `/${db}/_partition/${encodeURIComponent(partition)}/_all_docs${qs ? `?${qs}` : ""}`;
     const response = await this.request(path);
     return response.json() as Promise<AllDocsResult>;
   }
@@ -702,7 +703,7 @@ export class CouchClient {
       params.set("group_level", options.group_level.toString());
 
     const qs = params.toString();
-    const path = `/${db}/_partition/${encodeURIComponent(partition)}/_design/${ddoc}/_view/${view}${qs ? "?" + qs : ""}`;
+    const path = `/${db}/_partition/${encodeURIComponent(partition)}/_design/${ddoc}/_view/${view}${qs ? `?${qs}` : ""}`;
     const response = await this.request(path);
     return response.json() as Promise<ViewResult>;
   }
@@ -766,7 +767,7 @@ export class CouchClient {
     if (options.skip !== undefined) params.set("skip", options.skip.toString());
     const qs = params.toString();
     const response = await this.request(
-      `/_scheduler/jobs${qs ? "?" + qs : ""}`,
+      `/_scheduler/jobs${qs ? `?${qs}` : ""}`,
     );
     return response.json() as Promise<{
       total_rows: number;
@@ -790,7 +791,7 @@ export class CouchClient {
     const db = options.replicator ?? "_replicator";
     const qs = params.toString();
     const response = await this.request(
-      `/_scheduler/docs/${db}${qs ? "?" + qs : ""}`,
+      `/_scheduler/docs/${db}${qs ? `?${qs}` : ""}`,
     );
     return response.json() as Promise<{
       total_rows: number;

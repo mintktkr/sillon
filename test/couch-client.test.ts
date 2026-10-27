@@ -127,7 +127,7 @@ describe("CouchClient (integration)", () => {
 
   itSkip("deleteDocument removes the document", async () => {
     const put = await client.putDocument(TEST_DB, { _id: "delete-me", x: 1 });
-    await client.deleteDocument(TEST_DB, "delete-me", put.rev!);
+    await client.deleteDocument(TEST_DB, "delete-me", put.rev);
     await expect(client.getDocument(TEST_DB, "delete-me")).rejects.toThrow();
   });
 
@@ -162,11 +162,14 @@ describe("CouchClient (integration)", () => {
     const created = await client.bulkDocs(TEST_DB, docsToCreate);
 
     // Then delete
-    const toDelete = created.map((r) => ({
-      _id: r.id,
-      _rev: r.rev!,
-      _deleted: true as const,
-    }));
+    const toDelete = created.map((r) => {
+      if (!r.rev) throw new Error(`bulk create failed for ${r.id}: ${r.error}`);
+      return {
+        _id: r.id,
+        _rev: r.rev,
+        _deleted: true as const,
+      };
+    });
     const deleted = await client.bulkDocs(TEST_DB, toDelete);
     expect(deleted).toHaveLength(2);
     for (const r of deleted) {
@@ -319,8 +322,10 @@ describe("CouchClient (integration)", () => {
 
     await client.deleteIndex(TEST_DB, "color-index-ddoc", "color-index");
     const { indexes } = await client.listIndexes(TEST_DB);
-    const names = indexes.map((i) => i.name);
-    expect(names).not.toContain("color-index");
+    // "color-index" may also exist in the auto-named ddoc from the previous
+    // test, so check that this ddoc's index is gone, not the name
+    const ddocs = indexes.map((i) => i.ddoc);
+    expect(ddocs).not.toContain("_design/color-index-ddoc");
   });
 
   // ── Compact / cleanup ────────────────────────────────────────────────────
@@ -355,7 +360,7 @@ describe("CouchClient (integration)", () => {
   itSkip("purge removes specific revisions", async () => {
     const put = await client.putDocument(TEST_DB, { _id: "purge-me", v: 1 });
     // Delete the doc first so we can purge it
-    await client.deleteDocument(TEST_DB, "purge-me", put.rev!);
+    await client.deleteDocument(TEST_DB, "purge-me", put.rev);
 
     const deleted = await client
       .getDocument(TEST_DB, "purge-me")
@@ -368,7 +373,10 @@ describe("CouchClient (integration)", () => {
     if (!row) return; // already gone
 
     const result = await client.purge(TEST_DB, { "purge-me": [row.value.rev] });
-    expect(typeof result.purge_seq).toBe("string");
+    // CouchDB 3.x (clustered) returns purge_seq: null; 2.x returned a string
+    expect(
+      result.purge_seq === null || typeof result.purge_seq === "string",
+    ).toBe(true);
   });
 
   // ── getDbsInfo ───────────────────────────────────────────────────────────

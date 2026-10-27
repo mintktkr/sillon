@@ -42,7 +42,7 @@
   "homepage": "https://github.com/mintktkr/sillon#readme",
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@types/bun": "latest",
+    "@types/bun": "1.4.2",
     "typescript": "^5.9.0"
   },
   "dependencies": {
@@ -52,9 +52,5 @@
   "engines": {
     "bun": ">=1.0.0"
   },
-  "files": [
-    "dist/",
-    "README.md",
-    "LICENSE"
-  ]
+  "files": ["dist/", "README.md", "LICENSE"]
 }

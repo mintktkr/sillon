@@ -1,8 +1,8 @@
-import { existsSync } from "fs";
-import { homedir } from "os";
-import { join } from "path";
+import { existsSync } from "node:fs";
+import { mkdir } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { $, spawn } from "bun";
-import { mkdir } from "fs/promises";
 
 export interface LocalRuntimeOptions {
   version?: string;
@@ -91,7 +91,10 @@ export class LocalRuntime {
       throw new Error("CouchDB is not running (no state file found)");
     }
 
-    if ((stateText.runtime === "podman" || stateText.runtime === "docker") && stateText.containerName) {
+    if (
+      (stateText.runtime === "podman" || stateText.runtime === "docker") &&
+      stateText.containerName
+    ) {
       await this.stopContainer(stateText.containerName, stateText.runtime);
     } else if (stateText.runtime === "nix" || stateText.runtime === "binary") {
       await this.stopProcess(stateText.pid);
@@ -108,7 +111,10 @@ export class LocalRuntime {
 
     // Verify the process/container is still alive
     let alive = false;
-    if ((state.runtime === "podman" || state.runtime === "docker") && state.containerName) {
+    if (
+      (state.runtime === "podman" || state.runtime === "docker") &&
+      state.containerName
+    ) {
       alive = await this.isContainerRunning(state.containerName, state.runtime);
     } else if (state.runtime === "nix" || state.runtime === "binary") {
       alive = this.isProcessAlive(state.pid);
@@ -130,7 +136,9 @@ export class LocalRuntime {
     };
   }
 
-  private async detectRuntime(): Promise<"podman" | "docker" | "nix" | "binary"> {
+  private async detectRuntime(): Promise<
+    "podman" | "docker" | "nix" | "binary"
+  > {
     // Prefer podman — daemonless containers
     try {
       const proc = Bun.spawn(["which", "podman"], {
@@ -325,7 +333,9 @@ export class LocalRuntime {
 
   private async startNix(): Promise<string> {
     console.log(`📦 Starting CouchDB ${this.version} via Nix...`);
-    console.log("  ⚠️  Nix runtime is experimental - auth may require manual setup");
+    console.log(
+      "  ⚠️  Nix runtime is experimental - auth may require manual setup",
+    );
 
     // Ensure data directory exists
     await mkdir(this.dataDir, { recursive: true });
@@ -355,13 +365,7 @@ ${this.adminUser} = ${hashedPass}
     // Run couchdb via nix-shell
     console.log("  Starting with nix-shell...");
     const proc = spawn(
-      [
-        "nix-shell",
-        "-p",
-        "couchdb3",
-        "--run",
-        `couchdb -a "${localIni}"`,
-      ],
+      ["nix-shell", "-p", "couchdb3", "--run", `couchdb -a "${localIni}"`],
       {
         cwd: this.dataDir,
         stdout: "pipe",
@@ -388,7 +392,7 @@ ${this.adminUser} = ${hashedPass}
     // Check if this is a system-installed couchdb (via pacman/apt)
     const systemBin = await this.findCouchDBBinary();
 
-    if (systemBin && systemBin.startsWith("/usr/")) {
+    if (systemBin?.startsWith("/usr/")) {
       // This is a system package, use systemd
       return this.startSystemCouchDB();
     }
@@ -462,8 +466,9 @@ ${this.adminUser} = ${this.adminPass}
     }
 
     // Get the PID
-    const pidText = await $`systemctl show --property=MainPID --value couchdb`.text();
-    const pid = parseInt(pidText.trim());
+    const pidText =
+      await $`systemctl show --property=MainPID --value couchdb`.text();
+    const pid = Number.parseInt(pidText.trim());
 
     if (!pid || pid === 0) {
       throw new Error("Failed to get CouchDB PID from systemd");
@@ -479,7 +484,7 @@ ${this.adminUser} = ${this.adminPass}
 
     await this.waitForReady();
 
-    return `http://admin@localhost:5984`;
+    return "http://admin@localhost:5984";
   }
 
   private async downloadCouchDB(): Promise<void> {
@@ -502,7 +507,9 @@ ${this.adminUser} = ${this.adminPass}
       // Find the actual couchdb binary
       const couchPath = await this.findCouchDBBinary();
       if (!couchPath) {
-        throw new Error("CouchDB was not installed. Please install it manually: sudo pacman -S couchdb");
+        throw new Error(
+          "CouchDB was not installed. Please install it manually: sudo pacman -S couchdb",
+        );
       }
       // Create symlink in our install dir
       await mkdir(join(this.installDir, "bin"), { recursive: true });
@@ -538,18 +545,21 @@ ${this.adminUser} = ${this.adminPass}
       } catch {}
     } else {
       throw new Error(
-        `No supported package manager found (tried: pacman, apt, brew, snap).\n` +
-        `Please install CouchDB manually from https://couchdb.apache.org/\n` +
-        `Or use Podman: sillon local up (requires podman)`
+        "No supported package manager found (tried: pacman, apt, brew, snap).\n" +
+          "Please install CouchDB manually from https://couchdb.apache.org/\n" +
+          "Or use Podman: sillon local up (requires podman)",
       );
     }
 
-    console.log(`✅ CouchDB installed`);
+    console.log("✅ CouchDB installed");
   }
 
   private async commandExists(cmd: string): Promise<boolean> {
     try {
-      const proc = Bun.spawn(["which", cmd], { stdout: "pipe", stderr: "pipe" });
+      const proc = Bun.spawn(["which", cmd], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
       await proc.exited;
       return proc.exitCode === 0;
     } catch {
@@ -572,7 +582,10 @@ ${this.adminUser} = ${this.adminPass}
 
     // Try to find with which
     try {
-      const proc = Bun.spawn(["which", "couchdb"], { stdout: "pipe", stderr: "pipe" });
+      const proc = Bun.spawn(["which", "couchdb"], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
       await proc.exited;
       if (proc.exitCode === 0) {
         const path = (await new Response(proc.stdout).text()).trim();
@@ -583,7 +596,10 @@ ${this.adminUser} = ${this.adminPass}
     return null;
   }
 
-  private async stopContainer(containerName: string, runtime: "podman" | "docker"): Promise<void> {
+  private async stopContainer(
+    containerName: string,
+    runtime: "podman" | "docker",
+  ): Promise<void> {
     try {
       await $`${runtime} stop ${containerName}`.quiet();
       await $`${runtime} rm ${containerName}`.quiet();
@@ -620,7 +636,10 @@ ${this.adminUser} = ${this.adminPass}
     }
   }
 
-  private async isContainerRunning(containerName: string, runtime: "podman" | "docker"): Promise<boolean> {
+  private async isContainerRunning(
+    containerName: string,
+    runtime: "podman" | "docker",
+  ): Promise<boolean> {
     try {
       const proc = Bun.spawn(
         [runtime, "inspect", "-f", "{{.State.Running}}", containerName],

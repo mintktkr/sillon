@@ -124,8 +124,8 @@ SearchCommand.command("query <ddoc> <index> <query> [db]")
             const entries = Object.entries(hit.fields).slice(0, 5);
             for (const [k, v] of entries) {
               const val = JSON.stringify(v);
-              const display = val.length > 60 ? val.slice(0, 57) + "…" : val;
-              console.log(`    ${pc.dim(k + ":")} ${display}`);
+              const display = val.length > 60 ? `${val.slice(0, 57)}…` : val;
+              console.log(`    ${pc.dim(`${k}:`)} ${display}`);
             }
           }
         }

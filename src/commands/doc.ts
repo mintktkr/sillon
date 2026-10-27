@@ -1,5 +1,5 @@
+import { unlink } from "node:fs/promises";
 import { Command } from "commander";
-import { unlink } from "fs/promises";
 import pc from "picocolors";
 import { ConfigManager } from "../lib/config.js";
 import { CouchClient, type Document } from "../lib/couch-client.js";
@@ -128,11 +128,11 @@ DocCommand.command("list [db]")
               .slice(0, 4)
               .map(
                 (k) =>
-                  `${k}: ${JSON.stringify(row.doc![k as keyof typeof row.doc]).slice(0, 20)}`,
+                  `${k}: ${JSON.stringify(row.doc?.[k as keyof typeof row.doc]).slice(0, 20)}`,
               )
               .join(", ");
             console.log(
-              `    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`,
+              `    ${pc.dim(`{ ${preview}${keys.length > 4 ? ", …" : ""} }`)}`,
             );
           }
         }
@@ -221,7 +221,7 @@ DocCommand.command("put [db]")
         return;
       }
 
-      console.log(pc.green(`✓ Document saved`));
+      console.log(pc.green("✓ Document saved"));
       console.log(`  ${pc.dim("id:")}  ${result.id}`);
       console.log(`  ${pc.dim("rev:")} ${result.rev}`);
     } catch (error) {
@@ -267,7 +267,7 @@ DocCommand.command("edit <id> [db]")
       if (!updatedDoc._rev) updatedDoc._rev = doc._rev;
 
       const result = await client.putDocument(name, updatedDoc as Document);
-      console.log(pc.green(`✓ Document updated`));
+      console.log(pc.green("✓ Document updated"));
       console.log(`  ${pc.dim("id:")}  ${result.id}`);
       console.log(`  ${pc.dim("rev:")} ${result.rev}`);
     } catch (error) {
@@ -304,7 +304,8 @@ DocCommand.command("delete <id> [db]")
         }
       }
 
-      await client.deleteDocument(name, id, doc._rev!);
+      if (!doc._rev) throw new Error(`Document "${id}" has no _rev`);
+      await client.deleteDocument(name, id, doc._rev);
       console.log(pc.green(`✓ Deleted "${id}"`));
     } catch (error) {
       console.error(
@@ -343,7 +344,7 @@ DocCommand.command("purge <id> [db]")
         revs = [doc._rev];
       }
 
-      console.log(pc.yellow(`⚠️  Purge permanently removes revision history.`));
+      console.log(pc.yellow("⚠️  Purge permanently removes revision history."));
       const result = await client.purge(name, { [id]: revs });
 
       if (options.json) {
@@ -431,7 +432,7 @@ DocCommand.command("bulk-get [db]")
                 )
                 .join(", ");
               console.log(
-                `    ${pc.dim("{ " + preview + (keys.length > 4 ? ", …" : "") + " }")}`,
+                `    ${pc.dim(`{ ${preview}${keys.length > 4 ? ", …" : ""} }`)}`,
               );
             }
           }

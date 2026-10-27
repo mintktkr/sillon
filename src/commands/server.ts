@@ -109,7 +109,7 @@ ServerCommand.command("tasks")
       >;
 
       if (options.type) {
-        tasks = tasks.filter((t) => t["type"] === options.type);
+        tasks = tasks.filter((t) => t.type === options.type);
       }
 
       if (options.json) {
@@ -126,32 +126,32 @@ ServerCommand.command("tasks")
       }
 
       for (const task of tasks) {
-        const type = String(task["type"] ?? "unknown");
-        const node = task["node"] ? pc.dim(` on ${task["node"]}`) : "";
+        const type = String(task.type ?? "unknown");
+        const node = task.node ? pc.dim(` on ${task.node}`) : "";
         console.log(`\n  ${pc.blue("▸")} ${pc.bold(type)}${node}`);
 
-        if (task["database"])
-          console.log(`    ${pc.dim("database:")}  ${task["database"]}`);
-        if (task["design_document"])
-          console.log(`    ${pc.dim("ddoc:")}      ${task["design_document"]}`);
-        if (task["progress"] !== undefined) {
-          const pct = Number(task["progress"]);
+        if (task.database)
+          console.log(`    ${pc.dim("database:")}  ${task.database}`);
+        if (task.design_document)
+          console.log(`    ${pc.dim("ddoc:")}      ${task.design_document}`);
+        if (task.progress !== undefined) {
+          const pct = Number(task.progress);
           const bar = buildBar(pct, 20);
           console.log(`    ${pc.dim("progress:")}  ${bar} ${pct}%`);
         }
-        if (task["started_on"]) {
+        if (task.started_on) {
           const ts = new Date(
-            Number(task["started_on"]) * 1000,
+            Number(task.started_on) * 1000,
           ).toLocaleTimeString();
           console.log(`    ${pc.dim("started:")}   ${ts}`);
         }
         // Replication-specific
-        if (task["source"])
-          console.log(`    ${pc.dim("source:")}    ${task["source"]}`);
-        if (task["target"])
-          console.log(`    ${pc.dim("target:")}    ${task["target"]}`);
-        if (task["docs_written"] !== undefined)
-          console.log(`    ${pc.dim("written:")}   ${task["docs_written"]}`);
+        if (task.source)
+          console.log(`    ${pc.dim("source:")}    ${task.source}`);
+        if (task.target)
+          console.log(`    ${pc.dim("target:")}    ${task.target}`);
+        if (task.docs_written !== undefined)
+          console.log(`    ${pc.dim("written:")}   ${task.docs_written}`);
       }
     } catch (error) {
       console.error(
@@ -235,7 +235,7 @@ ServerCommand.command("scheduler")
           const lastEvent = job.history?.[0];
           if (lastEvent) {
             console.log(
-              `    ${pc.dim("last:")}    ${lastEvent.type}${lastEvent.reason ? " – " + lastEvent.reason : ""}`,
+              `    ${pc.dim("last:")}    ${lastEvent.type}${lastEvent.reason ? ` – ${lastEvent.reason}` : ""}`,
             );
           }
         }
@@ -270,44 +270,42 @@ ServerCommand.command("stats")
       console.log(pc.cyan(`📈 Node Stats: ${node}`));
 
       // Show a curated subset — full stats are huge
-      const httpd = (stats as Record<string, unknown>)["httpd"] as
+      const httpd = (stats as Record<string, unknown>).httpd as
         | Record<string, unknown>
         | undefined;
-      const couchdb = (stats as Record<string, unknown>)["couchdb"] as
+      const couchdb = (stats as Record<string, unknown>).couchdb as
         | Record<string, unknown>
         | undefined;
 
       if (httpd) {
-        const requests = httpd["requests"] as
-          | Record<string, unknown>
-          | undefined;
-        const bulkRequests = httpd["bulk_requests"] as
+        const requests = httpd.requests as Record<string, unknown> | undefined;
+        const bulkRequests = httpd.bulk_requests as
           | Record<string, unknown>
           | undefined;
         if (requests)
           console.log(
-            `  ${pc.dim("httpd.requests:")}      ${(requests["value"] as number) ?? 0}`,
+            `  ${pc.dim("httpd.requests:")}      ${(requests.value as number) ?? 0}`,
           );
         if (bulkRequests)
           console.log(
-            `  ${pc.dim("httpd.bulk_requests:")} ${(bulkRequests["value"] as number) ?? 0}`,
+            `  ${pc.dim("httpd.bulk_requests:")} ${(bulkRequests.value as number) ?? 0}`,
           );
       }
 
       if (couchdb) {
-        const openDbs = couchdb["open_databases"] as
+        const openDbs = couchdb.open_databases as
           | Record<string, unknown>
           | undefined;
-        const openFiles = couchdb["open_os_files"] as
+        const openFiles = couchdb.open_os_files as
           | Record<string, unknown>
           | undefined;
         if (openDbs)
           console.log(
-            `  ${pc.dim("couchdb.open_dbs:")}    ${(openDbs["value"] as number) ?? 0}`,
+            `  ${pc.dim("couchdb.open_dbs:")}    ${(openDbs.value as number) ?? 0}`,
           );
         if (openFiles)
           console.log(
-            `  ${pc.dim("couchdb.open_files:")}  ${(openFiles["value"] as number) ?? 0}`,
+            `  ${pc.dim("couchdb.open_files:")}  ${(openFiles.value as number) ?? 0}`,
           );
       }
 
