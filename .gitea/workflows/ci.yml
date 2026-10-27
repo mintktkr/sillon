@@ -64,9 +64,17 @@ jobs:
       # (_users, _replicator), so single-node setup has to create them.
       - name: Create CouchDB system databases
         run: |
+          set -euo pipefail
+          COUCH="${COUCH:-http://admin:password@localhost:5984}"
+          failed=0
           for db in _users _replicator; do
-            curl -sf -X PUT http://admin:password@localhost:5984/$db || curl -sf http://admin:password@localhost:5984/$db
+            # PUT creates it; a GET that succeeds means it already existed
+            if ! curl -sf -X PUT "$COUCH/$db" && ! curl -sf "$COUCH/$db"; then
+              echo "::error::could not create CouchDB system db $db"
+              failed=1
+            fi
           done
+          exit "$failed"
 
       - name: Run tests
         env:

@@ -379,6 +379,17 @@ describe("CouchClient (unit)", () => {
     expect(body.doc1).toEqual(["1-abc"]);
   });
 
+  it("purge passes through purge_seq: null (CouchDB 3.x clustered)", async () => {
+    clearCaptures();
+    enqueueMock({
+      ok: true,
+      body: { purged: { doc1: ["1-abc"] }, purge_seq: null },
+    });
+    const result = await client.purge("mydb", { doc1: ["1-abc"] });
+    expect(result.purge_seq).toBeNull();
+    expect(result.purged).toEqual({ doc1: ["1-abc"] });
+  });
+
   // ── getPartitionInfo ──────────────────────────────────────────────────────
 
   it("getPartitionInfo hits /<db>/_partition/<partition>", async () => {
